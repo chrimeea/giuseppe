@@ -214,7 +214,9 @@ class JVM
 				is_type_equal_or_superclass?(class_file.get_attrib_name(class_file.super_class), class_type_b)
 				return true
 			end
-			return false
+			class_file.interfaces.each.any? do |i|
+				is_type_equal_or_superclass?(class_file.get_attrib_name(i), class_type_b)
+			end
 		end
 	end
 
@@ -376,7 +378,7 @@ class JVM
 						reference.set_field(JVMField.new(@loader.load_class(details.class_type),
 							details.field_name, details.field_type), value)
 						frame.pc += 2
-					when 182, 183, 184
+					when 182, 183, 184, 185
 						method_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
 						details = frame.class_file.class_and_name_and_type(method_index)
@@ -387,6 +389,7 @@ class JVM
 						(method.args.size + 1).times { params.push frame.stack.pop }
 						run Frame.new(method, params.reverse)
 						frame.pc += 2
+						frame.pc += 2 if opcode == 185
 					when 187
 						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
