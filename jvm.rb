@@ -18,10 +18,10 @@ end
 
 class Instance
 
-	attr_reader :class_file
+	attr_reader :class_type
 
-	def initialize class_file
-		@class_file = class_file
+	def initialize class_type
+		@class_type = class_type
 		@fields = {}
 	end
 
@@ -54,7 +54,7 @@ class JVMError < StandardError
 	end
 
 	def to_s
-		@exception.class_file.this_class_type
+		@exception.class_type
 	end
 end
 
@@ -173,9 +173,9 @@ class JVM
 
 	def new_object class_type
 		class_initialized = @loader.is_loaded?(class_type)
-		reference = Instance.new(@loader.load_class(class_type))
+		reference = Instance.new(class_type)
 		if class_initialized == false
-			clinit = JVMMethod.new(reference.class_file, '<clinit>', '()V')
+			clinit = JVMMethod.new(@loader.load_class(class_type), '<clinit>', '()V')
 			run Frame.new(clinit, []) if (clinit.attrib)
 		end rescue
 		initialize_fields reference, class_type
@@ -208,15 +208,20 @@ class JVM
 	def is_type_equal_or_superclass?(class_type_a, class_type_b)
 		if class_type_a == class_type_b
 			return true
+		elsif class_type_a.chr == '['
+			if class_type_b.chr == '['
+				return is_type_equal_or_superclass(class_type_a[1..-1], class_type_b[1..-1])
+			else
+				return class_type_b == 'java/lang/Object'
+			end
 		else
 			class_file = @loader.load_class class_type_a
-			if class_file.super_class.nonzero? and
+			return true if class_file.super_class.nonzero? and
 				is_type_equal_or_superclass?(class_file.get_attrib_name(class_file.super_class), class_type_b)
-				return true
-			end
 			class_file.interfaces.each.any? do |i|
-				is_type_equal_or_superclass?(class_file.get_attrib_name(i), class_type_b)
+				return true if is_type_equal_or_superclass?(class_file.get_attrib_name(i), class_type_b)
 			end
+			return false
 		end
 	end
 
@@ -397,14 +402,26 @@ class JVM
 						frame.pc += 2
 					when 188
 						count = frame.stack.pop
-						array_type = frame.code[frame.pc]
-						frame.stack.push InstanceArray.new(array_type, count)
+						array_code = frame.code[frame.pc]
+						array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
+						frame.stack.push InstanceArray.new(array_type[array_code], count)
 						frame.pc += 1
 					when 190
 						array_reference = frame.stack.pop
 						frame.stack.push array_reference.values.size
 					when 191
 						raise JVMError, frame.stack.pop
+					when 193
+						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
+							frame.code[frame.pc + 1])
+						reference = frame.stack.pop
+						if reference
+							frame.stack.push is_type_equal_or_superclass?(reference.class_type,
+								frame.class_file.get_attrib_name(class_index))
+						else
+							frame.stack.push 0
+						end
+						frame.pc += 2
 					else
 						fail "Unsupported opcode #{opcode}"
 					end
