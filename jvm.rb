@@ -2,8 +2,7 @@ require './classloader'
 
 class Frame
 
-	attr_reader :stack, :locals, :code, :class_file, :exceptions
-	attr_accessor :pc
+	attr_reader :stack, :locals, :code, :class_file, :exceptions, :pc
 
 	def initialize method, params
 		@stack = []
@@ -22,6 +21,11 @@ class Frame
 			@pc += 2
 		end
 	end
+
+	def next_instruction i = 1
+		@pc += i
+	end
+
 end
 
 class Instance
@@ -198,7 +202,7 @@ class JVM
 	end
 
 	def handle_exception frame, exception
-		frame.pc -= 1
+		frame.next_instruction -1
 		handler = resolve_exception_handler frame, exception
 		if handler
 			frame.stack = exception
@@ -245,7 +249,7 @@ class JVM
 			while frame.pc < frame.code.length
 				begin
 					opcode = frame.code[frame.pc]
-					frame.pc += 1
+					frame.next_instruction
 					case opcode
 					when 0
 					when 1
@@ -266,7 +270,7 @@ class JVM
 						frame.stack.push 5
 					when 16
 						frame.stack.push frame.code[frame.pc]
-						frame.pc += 1
+						frame.next_instruction
 					when 18
 						index = frame.code[frame.pc]
 						attrib = frame.class_file.constant_pool[index]
@@ -281,10 +285,10 @@ class JVM
 						else
 							fail 'Illegal attribute type'
 						end
-						frame.pc += 1
+						frame.next_instruction
 					when 21, 25
 						frame.stack.push frame.locals[frame.code[frame.pc]]
-						frame.pc += 1
+						frame.next_instruction
 					when 26, 42
 						frame.stack.push frame.locals[0]
 					when 27, 43
@@ -299,7 +303,7 @@ class JVM
 						frame.stack.push arrayref[index]
 					when 54, 58
 						frame.locals[frame.code[frame.pc]] = frame.stack.pop
-						frame.pc += 1
+						frame.next_instruction
 					when 59, 75
 						frame.locals[0] = frame.stack.pop
 					when 60, 76
@@ -378,7 +382,7 @@ class JVM
 						reference = frame.stack.pop
 						frame.stack.push reference.get_field(JVMField.new(@loader.load_class(details.class_type),
 							details.field_name, details.field_type))
-						frame.pc += 2
+						frame.next_instruction 2
 					when 181
 						field_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
@@ -387,7 +391,7 @@ class JVM
 						reference = frame.stack.pop
 						reference.set_field(JVMField.new(@loader.load_class(details.class_type),
 							details.field_name, details.field_type), value)
-						frame.pc += 2
+						frame.next_instruction 2
 					when 182, 183, 184, 185
 						method_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
@@ -398,26 +402,26 @@ class JVM
 						params = []
 						(method.args.size + 1).times { params.push frame.stack.pop }
 						run Frame.new(method, params.reverse)
-						frame.pc += 2
-						frame.pc += 2 if opcode == 185
+						frame.next_instruction 2
+						frame.next_instruction(2) if opcode == 185
 					when 187
 						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
 						frame.stack.push new_object(frame.class_file.get_attrib_name(class_index))
-						frame.pc += 2
+						frame.next_instruction 2
 					when 188
 						count = frame.stack.pop
 						array_code = frame.code[frame.pc]
 						array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
 						frame.stack.push InstanceArray.new(array_type[array_code], [count])
-						frame.pc += 1
+						frame.next_instruction
 					when 189
 						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
 						array_type = "[#{frame.class_file.get_attrib_name(class_index)}"
 						count = frame.stack.pop
 						frame.stack.push InstanceArray.new(array_type, [count])
-						frame.pc += 2
+						frame.next_instruction 2
 					when 190
 						array_reference = frame.stack.pop
 						frame.stack.push array_reference.values.size
@@ -433,7 +437,7 @@ class JVM
 						else
 							frame.stack.push 0
 						end
-						frame.pc += 2
+						frame.next_instruction 2
 					when 197
 						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
 							frame.code[frame.pc + 1])
@@ -442,7 +446,7 @@ class JVM
 						dimensions.times { counts << frame.stack.pop }
 						frame.stack.push InstanceArray.new(frame.class_file.get_attrib_name(class_index),
 							counts.reverse)
-						frame.pc += 3
+						frame.next_instruction 3
 					else
 						fail "Unsupported opcode #{opcode}"
 					end
