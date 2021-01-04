@@ -40,7 +40,7 @@ class InstanceArray < Instance
 
 	def initialize class_type, count
 		@values = Array.new(count)
-		super class_type
+		super "[#{class_type}"
 	end
 end
 
@@ -116,7 +116,7 @@ class JVM
 	def run_main class_type
 		begin
 			class_file = @loader.load_class class_type
-			arrayref = InstanceArray.new('[Ljava/lang/String;', ARGV.size - 1)
+			arrayref = InstanceArray.new('Ljava/lang/String;', ARGV.size - 1)
 			ARGV[1..-1].each { |s| arrayref.values << new_string(s) }
 			run Frame.new(JVMMethod.new(class_file, 'main', '([Ljava/lang/String;)V'), [arrayref])
 		rescue JVMError => e
@@ -165,7 +165,7 @@ class JVM
 
 	def new_string value
 		stringref = new_object 'java/lang/String'
-		arrayref = InstanceArray.new('[B', ARGV.size - 1)
+		arrayref = InstanceArray.new('B', ARGV.size - 1)
 		arrayref.values << value.unpack('c*')
 		run Frame.new(JVMMethod.new(stringref.class_file, '<init>', '([B)V'), [stringref, arrayref])
 		return stringref
@@ -403,9 +403,16 @@ class JVM
 					when 188
 						count = frame.stack.pop
 						array_code = frame.code[frame.pc]
-						array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
+						array_type = [nil, nil, nil, nil, 'Z', 'C', 'F', 'D', 'B', 'S', 'I', 'J']
 						frame.stack.push InstanceArray.new(array_type[array_code], count)
 						frame.pc += 1
+					when 189
+						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
+							frame.code[frame.pc + 1])
+						count = frame.stack.pop
+						frame.stack.push InstanceArray.new(frame.class_file.get_attrib_name(class_index),
+							count)
+						frame.pc += 2
 					when 190
 						array_reference = frame.stack.pop
 						frame.stack.push array_reference.values.size
