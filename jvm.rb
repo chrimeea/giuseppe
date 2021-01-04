@@ -15,7 +15,7 @@ class Frame
 		@pc = 0
 	end
 
-	def goto
+	def goto_if
 		if yield
 			@pc += BinaryParser.to_16bit_signed(@code[@pc], @code[@pc + 1]) - 1
 		else
@@ -344,31 +344,31 @@ class JVM
 					when 130
 						frame.stack.push(frame.stack.pop ^ frame.stack.pop)
 					when 153
-						frame.goto { frame.stack.pop.zero? }
+						frame.goto_if { frame.stack.pop.zero? }
 					when 154
-						frame.goto { frame.stack.pop.nonzero? }
+						frame.goto_if { frame.stack.pop.nonzero? }
 					when 155
-						frame.goto { frame.stack.pop < 0 }
+						frame.goto_if { frame.stack.pop < 0 }
 					when 156
-						frame.goto { frame.stack.pop >= 0 }
+						frame.goto_if { frame.stack.pop >= 0 }
 					when 157
-						frame.goto { frame.stack.pop > 0 }
+						frame.goto_if { frame.stack.pop > 0 }
 					when 158
-						frame.goto { frame.stack.pop <= 0 }
+						frame.goto_if { frame.stack.pop <= 0 }
 					when 159
-						frame.goto { frame.stack.pop == frame.stack.pop }
+						frame.goto_if { frame.stack.pop == frame.stack.pop }
 					when 160
-						frame.goto { frame.stack.pop != frame.stack.pop }
+						frame.goto_if { frame.stack.pop != frame.stack.pop }
 					when 161
-						frame.goto { frame.stack.pop > frame.stack.pop }
+						frame.goto_if { frame.stack.pop > frame.stack.pop }
 					when 162
-						frame.goto { frame.stack.pop <= frame.stack.pop }
+						frame.goto_if { frame.stack.pop <= frame.stack.pop }
 					when 163
-						frame.goto { frame.stack.pop < frame.stack.pop }
+						frame.goto_if { frame.stack.pop < frame.stack.pop }
 					when 164
-						frame.goto { frame.stack.pop >= frame.stack.pop }
+						frame.goto_if { frame.stack.pop >= frame.stack.pop }
 					when 167
-						frame.goto { true }
+						frame.goto_if { true }
 					when 177
 						break
 					when 180
