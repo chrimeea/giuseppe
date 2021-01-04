@@ -14,6 +14,14 @@ class Frame
 		@class_file = method.class_file
 		@pc = 0
 	end
+
+	def goto
+		if yield
+			@pc += BinaryParser.to_16bit_signed(@code[@pc], @code[@pc + 1]) - 1
+		else
+			@pc += 2
+		end
+	end
 end
 
 class Instance
@@ -169,10 +177,12 @@ class JVM
 	end
 
 	def new_string value
-		stringref = new_object 'java/lang/String'
+		class_type = 'java/lang/String'
+		stringref = new_object class_type
 		arrayref = InstanceArray.new('[B', [ARGV.size - 1])
 		arrayref.values << value.unpack('c*')
-		run Frame.new(JVMMethod.new(stringref.class_file, '<init>', '([B)V'), [stringref, arrayref])
+		run Frame.new(JVMMethod.new(@loader.load_class(class_type),
+			'<init>', '([B)V'), [stringref, arrayref])
 		return stringref
 	end
 
@@ -272,6 +282,9 @@ class JVM
 							fail 'Illegal attribute type'
 						end
 						frame.pc += 1
+					when 21, 25
+						frame.stack.push frame.locals[frame.code[frame.pc]]
+						frame.pc += 1
 					when 26, 42
 						frame.stack.push frame.locals[0]
 					when 27, 43
@@ -284,7 +297,7 @@ class JVM
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
 						frame.stack.push arrayref[index]
-					when 54
+					when 54, 58
 						frame.locals[frame.code[frame.pc]] = frame.stack.pop
 						frame.pc += 1
 					when 59, 75
@@ -330,48 +343,32 @@ class JVM
 						frame.stack.push(frame.stack.pop | frame.stack.pop)
 					when 130
 						frame.stack.push(frame.stack.pop ^ frame.stack.pop)
+					when 153
+						frame.goto { frame.stack.pop.zero? }
+					when 154
+						frame.goto { frame.stack.pop.nonzero? }
+					when 155
+						frame.goto { frame.stack.pop < 0 }
+					when 156
+						frame.goto { frame.stack.pop >= 0 }
+					when 157
+						frame.goto { frame.stack.pop > 0 }
+					when 158
+						frame.goto { frame.stack.pop <= 0 }
 					when 159
-						if frame.stack.pop == frame.stack.pop
-							frame.pc += BinaryParser.to_16bit_signed(frame.code[frame.pc],
-								frame.code[frame.pc + 1]) - 1
-						else
-							frame.pc += 2
-						end
+						frame.goto { frame.stack.pop == frame.stack.pop }
 					when 160
-						if frame.stack.pop != frame.stack.pop
-							frame.pc += BinaryParser.to_16bit_signed(frame.code[frame.pc],
-								frame.code[frame.pc + 1]) - 1
-						else
-							frame.pc += 2
-						end
+						frame.goto { frame.stack.pop != frame.stack.pop }
 					when 161
-						if frame.stack.pop > frame.stack.pop
-							frame.pc += BinaryParser.to_16bit_signed(frame.code[frame.pc],
-								frame.code[frame.pc + 1]) - 1
-						else
-							frame.pc += 2
-						end
+						frame.goto { frame.stack.pop > frame.stack.pop }
 					when 162
-						if frame.stack.pop <= frame.stack.pop
-							frame.pc += BinaryParser.to_16bit_signed(frame.code[frame.pc],
-								frame.code[frame.pc + 1]) - 1
-						else
-							frame.pc += 2
-						end
+						frame.goto { frame.stack.pop <= frame.stack.pop }
 					when 163
-						if frame.stack.pop < frame.stack.pop
-							frame.pc += BinaryParser.to_16bit_signed(frame.code[frame.pc],
-								frame.code[frame.pc + 1]) - 1
-						else
-							frame.pc += 2
-						end
+						frame.goto { frame.stack.pop < frame.stack.pop }
 					when 164
-						if frame.stack.pop >= frame.stack.pop
-							frame.pc += BinaryParser.to_16bit_signed(frame.code[frame.pc],
-								frame.code[frame.pc + 1]) - 1
-						else
-							frame.pc += 2
-						end
+						frame.goto { frame.stack.pop >= frame.stack.pop }
+					when 167
+						frame.goto { true }
 					when 177
 						break
 					when 180
