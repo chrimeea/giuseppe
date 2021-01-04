@@ -1,5 +1,5 @@
 Implementation of the java virtual machine 1.6 for educational purposes written in Ruby.
-Supports ints, arrays, strings and objects.
+Supports booleans, ints, arrays, strings and objects.
 Supports instance and static method invocations.
 Supports inheritance, abstract classes and interfaces.
 Supports exceptions (no stack trace yet).

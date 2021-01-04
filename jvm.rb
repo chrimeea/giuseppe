@@ -284,6 +284,9 @@ class JVM
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
 						frame.stack.push arrayref[index]
+					when 54
+						frame.locals[frame.code[frame.pc]] = frame.stack.pop
+						frame.pc += 1
 					when 59, 75
 						frame.locals[0] = frame.stack.pop
 					when 60, 76
