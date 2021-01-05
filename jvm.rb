@@ -128,6 +128,7 @@ class JVM
 
 	def initialize
 		@loader = ClassLoader.new
+		@frames = []
 	end
 
 	def run_main class_type
@@ -202,6 +203,7 @@ class JVM
 	end
 
 	def handle_exception frame, exception
+		@frames.pop
 		frame.next_instruction -1
 		handler = resolve_exception_handler frame, exception
 		if handler
@@ -246,6 +248,7 @@ class JVM
 
 	def run frame
 		if frame.code
+			@frames.push frame
 			while frame.pc < frame.code.length
 				begin
 					opcode = frame.code[frame.pc]
@@ -373,6 +376,9 @@ class JVM
 						frame.goto_if { frame.stack.pop >= frame.stack.pop }
 					when 167
 						frame.goto_if { true }
+					when 172
+						@frames[-2].stack.push frame.stack.pop
+						break
 					when 177
 						break
 					when 180
@@ -460,6 +466,7 @@ class JVM
 					end
 				end
 			end
+			@frames.pop
 		end
 	end
 end
