@@ -52,6 +52,10 @@ class BinaryParser
 	def self.to_16bit_unsigned(byte1, byte2)
 		(byte1 << 8) | byte2
 	end
+
+	def self.to_8bit(value)
+		value.divmod 256
+	end
 end
 
 class ClassField

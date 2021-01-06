@@ -8,49 +8,55 @@ class ClassLoader
 
 	def load_constant_pool
 		constant_pool_count = @parser.load_u2 - 1
+		tag = nil
 		constant_pool_count.times do
-			tag = @parser.load_u1
-			case tag
-			when 1
-				v = ConstantPoolConstantValueInfo.new
-				v.value = @parser.load_string(@parser.load_u2)
-			when 3, 4
-				v = ConstantPoolConstantValueInfo.new
-				v.value = @parser.load_u4
-				if (tag == 4)
-					s = if (v.value >> 31) == 0 then 1 else -1 end
-    				e = (v.value >> 23) & 0xff;
-					m = if e == 0 then (v.value & 0x7fffff) << 1 else (v.value & 0x7fffff) | 0x800000 end
-					v.value = s * m * 2 ^ (e - 150)
+			if tag == 5 or tag == 6
+				@class_file.constant_pool << nil
+				tag = nil
+			else
+				tag = @parser.load_u1
+				case tag
+				when 1
+					v = ConstantPoolConstantValueInfo.new
+					v.value = @parser.load_string(@parser.load_u2)
+				when 3, 4
+					v = ConstantPoolConstantValueInfo.new
+					v.value = @parser.load_u4
+					if (tag == 4)
+						s = if (v.value >> 31) == 0 then 1 else -1 end
+						e = (v.value >> 23) & 0xff;
+						m = if e == 0 then (v.value & 0x7fffff) << 1 else (v.value & 0x7fffff) | 0x800000 end
+						v.value = s * m * 2 ** (e - 150)
+					end
+				when 5, 6
+					v = ConstantPoolConstantValueInfo.new
+					high_bytes = @parser.load_u4
+					low_bytes = @parser.load_u4
+					v.value = (high_bytes << 32) + low_bytes
+					if (tag == 6)
+						s = if (v.value >> 63) == 0 then 1 else -1 end
+						e = (v.value >> 52) & 0x7ff
+						m = if e == 0 then (v.value & 0xfffffffffffff) << 1 else (v.value & 0xfffffffffffff) | 0x10000000000000 end
+						v.value = s * m * 2 ** (e - 1075)
+					end
+				when 7
+					v = ConstantPoolConstantIndex1Info.new
+					v.index1 = @parser.load_u2
+				when 8
+					v = ConstantPoolConstantIndex1Info.new
+					v.index1 = @parser.load_u2
+				when 9, 10, 11
+					v = ConstantPoolConstantIndex2Info.new
+					v.index1 = @parser.load_u2
+					v.index2 = @parser.load_u2
+				when 12
+					v = ConstantPoolConstantIndex2Info.new
+					v.index1 = @parser.load_u2
+					v.index2 = @parser.load_u2
 				end
-			when 5, 6
-				v = ConstantPoolConstantValueInfo.new
-				high_bytes = @parser.load_u4
-				low_bytes = @parser.load_u4
-				v.value = (high_bytes << 32) + low_bytes
-				if (tag == 6)
-					s = if (v.value >> 63) == 0 then 1 else -1 end
-					e = (v.value >> 52) & 0x7ff
-					m = if e == 0 then (v.value & 0xfffffffffffff) << 1 else (v.value & 0xfffffffffffff) | 0x10000000000000 end
-					v.value = s * m * 2 ^ (e - 1075)
-				end
-			when 7
-				v = ConstantPoolConstantIndex1Info.new
-				v.index1 = @parser.load_u2
-			when 8
-				v = ConstantPoolConstantIndex1Info.new
-				v.index1 = @parser.load_u2
-			when 9, 10, 11
-				v = ConstantPoolConstantIndex2Info.new
-				v.index1 = @parser.load_u2
-				v.index2 = @parser.load_u2
-			when 12
-				v = ConstantPoolConstantIndex2Info.new
-				v.index1 = @parser.load_u2
-				v.index2 = @parser.load_u2
+				v.tag = tag
+				@class_file.constant_pool << v
 			end
-			v.tag = tag
-			@class_file.constant_pool << v
 		end
 	end
 

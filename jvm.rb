@@ -9,7 +9,18 @@ class Frame
 		code_attr = method.attrib.get_code
 		@code = code_attr.code
 		@exceptions = code_attr.exception_table
-		@locals = params
+		p = params.reverse
+		@locals = []
+		@locals.push(p.pop) if params.size > method.args.size
+		method.args.each do |a|
+			if a == 'J' or a == 'D'
+				q, r = BinaryParser.to_8bit p.pop
+				@locals.push q
+				@locals.push r
+			else
+				@locals.push p.pop
+			end
+		end
 		@class_file = method.class_file
 		@pc = 0
 	end
@@ -259,9 +270,9 @@ class JVM
 						frame.stack.push nil
 					when 2
 						frame.stack.push -1
-					when 3
+					when 3, 9
 						frame.stack.push 0
-					when 4
+					when 4, 10
 						frame.stack.push 1
 					when 5
 						frame.stack.push 2
@@ -289,6 +300,11 @@ class JVM
 							fail 'Illegal attribute type'
 						end
 						frame.next_instruction
+					when 20
+						index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
+							frame.code[frame.pc + 1])
+						frame.stack.push frame.class_file.constant_pool[index].value
+						frame.next_instruction 2
 					when 21, 25
 						frame.stack.push frame.locals[frame.code[frame.pc]]
 						frame.next_instruction
@@ -304,8 +320,13 @@ class JVM
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
 						frame.stack.push arrayref[index]
-					when 54, 58
+					when 54, 56, 58
 						frame.locals[frame.code[frame.pc]] = frame.stack.pop
+						frame.next_instruction
+					when 55, 57
+						index = frame.code[frame.pc]
+						frame.locals[index], frame.locals[index + 1] =
+							BinaryParser.to_8bit(frame.stack.pop)
 						frame.next_instruction
 					when 59, 75
 						frame.locals[0] = frame.stack.pop
@@ -406,7 +427,9 @@ class JVM
 							@loader.load_class(details.class_type),
 							details.field_name, details.field_type)
 						params = []
-						(method.args.size + 1).times { params.push frame.stack.pop }
+						args_count = method.args.size
+						args_count += 1 if opcode != 184
+						args_count.times { params.push frame.stack.pop }
 						run Frame.new(method, params.reverse)
 						frame.next_instruction 2
 						frame.next_instruction(2) if opcode == 185
