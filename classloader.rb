@@ -109,7 +109,7 @@ class ClassLoader
 				a = ClassAttributeInnerClasses.new
 				a.classes = []
 				@parser.load_u2.times do
-					t = ClassAttributeInnerClasses::Table
+					t = ClassAttributeInnerClasses::Table.new
 					t.inner_class_info_index = @parser.load_u2
 					t.outer_class_info_index = @parser.load_u2
 					t.inner_name_index = @parser.load_u2

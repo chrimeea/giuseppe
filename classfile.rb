@@ -83,6 +83,7 @@ class ClassAttributeCode < ClassAttribute
 	attr_accessor :max_stack, :max_locals, :code, :exception_table, :attributes
 
 	class Table
+
 		attr_accessor :start_pc, :end_pc, :handler_pc, :catch_type
 	end
 end
