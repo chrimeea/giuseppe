@@ -319,7 +319,7 @@ class JVM
 					when 50
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
-						frame.stack.push arrayref[index]
+						frame.stack.push arrayref.values[index]
 					when 54, 56, 58
 						frame.locals[frame.code[frame.pc]] = frame.stack.pop
 						frame.next_instruction
@@ -336,11 +336,11 @@ class JVM
 						frame.locals[2] = frame.stack.pop
 					when 62, 78
 						frame.locals[3] = frame.stack.pop
-					when 83
+					when 79, 83
 						value = frame.stack.pop
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
-						arrayref[index] = value
+						arrayref.values[index] = value
 					when 87
 						frame.stack.pop
 					when 89
@@ -397,7 +397,7 @@ class JVM
 						frame.goto_if { frame.stack.pop >= frame.stack.pop }
 					when 167
 						frame.goto_if { true }
-					when 172
+					when 172, 176
 						@frames[-2].stack.push frame.stack.pop
 						break
 					when 177
