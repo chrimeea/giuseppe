@@ -481,6 +481,8 @@ class JVM
 					end
 				rescue JVMError => e
 					handle_exception frame, e.exception
+				rescue ZeroDivisionError
+					handle_exception frame, new_object('java/lang/ArithmeticException')
 				rescue NoMethodError => e
 					if e.receiver
 						raise e
