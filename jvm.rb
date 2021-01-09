@@ -1,27 +1,33 @@
 require './classloader'
+require './native'
 
 class Frame
 
-	attr_reader :stack, :locals, :code, :class_file, :exceptions, :pc
+	attr_reader :stack, :locals, :code, :class_file, :exceptions, :pc, :method
 
 	def initialize method, params
-		@stack = []
 		code_attr = method.attrib.get_code
-		@code = code_attr.code
-		@exceptions = code_attr.exception_table
-		p = params.reverse
-		@locals = []
-		@locals.push(p.pop) if params.size > method.args.size
-		method.args.each do |a|
-			if a == 'J' or a == 'D'
-				q, r = BinaryParser.to_8bit p.pop
-				@locals.push q
-				@locals.push r
-			else
-				@locals.push p.pop
+		if code_attr
+			@stack = []
+			@code = code_attr.code
+			@exceptions = code_attr.exception_table
+			p = params.reverse
+			@locals = []
+			@locals.push(p.pop) if params.size > method.args.size
+			method.args.each do |a|
+				if a == 'J' or a == 'D'
+					q, r = BinaryParser.to_8bit p.pop
+					@locals.push q
+					@locals.push r
+				else
+					@locals.push p.pop
+				end
 			end
+		else
+			@locals = params
 		end
 		@class_file = method.class_file
+		@method = method
 		@pc = 0
 	end
 
@@ -132,6 +138,18 @@ class JVMMethod
 			end
 			i += 1
 		end
+	end
+
+	def native_name
+		n = @class_file.get_attrib_name(@class_file.this_class).sub('/', '_')
+		i = n.rindex('_')
+		if i
+			n[i] = '_jni_'
+			n[0] = n[0].upcase
+		else
+			n = 'Jni_' + n
+		end
+		n + '_' + @method_name
 	end
 end
 
@@ -258,8 +276,8 @@ class JVM
 	end
 
 	def run frame
+		@frames.push frame
 		if frame.code
-			@frames.push frame
 			while frame.pc < frame.code.length
 				begin
 					opcode = frame.code[frame.pc]
@@ -491,7 +509,9 @@ class JVM
 					end
 				end
 			end
-			@frames.pop
+		else
+			send frame.method.native_name
 		end
+		@frames.pop
 	end
 end
