@@ -232,7 +232,7 @@ class JVM
 
 	def initialize_fields reference, jvmclass
 		static = reference.is_class_reference?
-		jvmclass.class_file.fields.select { |f| static == f.access_flags.is_static? }.each do |f|
+		jvmclass.class_file.fields.select { |f| static == !!f.access_flags.is_static? }.each do |f|
 			jvmfield = JVMField.new(jvmclass,
 				jvmclass.class_file.constant_pool[f.name_index].value,
 				jvmclass.class_file.constant_pool[f.descriptor_index].value)
