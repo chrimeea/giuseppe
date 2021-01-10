@@ -192,13 +192,13 @@ class JVM
 		else
 			jvmclass = JVMClass.new(@loader.load_file(@loader.class_path(class_type)))
 			initialize_fields jvmclass.reference, jvmclass
+			@classes[class_type] = jvmclass
 			begin
 				clinit = JVMMethod.new(jvmclass, '<clinit>', '()V')
 			rescue
 				clinit = nil
 			end
 			run Frame.new(clinit, []) if clinit
-			@classes[class_type] = jvmclass
 			return jvmclass
 		end
 	end
@@ -379,7 +379,7 @@ class JVM
 						frame.locals[2] = frame.stack.pop
 					when 62, 78
 						frame.locals[3] = frame.stack.pop
-					when 79, 83
+					when 79, 83, 84
 						value = frame.stack.pop
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
@@ -452,6 +452,13 @@ class JVM
 						jvmclass = load_class(details.class_type)
 						frame.stack.push jvmclass.reference.get_field(JVMField.new(jvmclass,
 							details.field_name, details.field_type))
+					when 179
+						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
+						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
+						jvmclass = load_class(details.class_type)
+						jvmclass.reference.set_field(JVMField.new(jvmclass,
+							details.field_name, details.field_type), frame.stack.pop)
 					when 180
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
