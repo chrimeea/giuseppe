@@ -2,10 +2,6 @@ require './classfile'
 
 class ClassLoader
 
-	def initialize
-		@classes = {}
-	end
-
 	def load_constant_pool
 		constant_pool_count = @parser.load_u2 - 1
 		tag = nil
@@ -169,23 +165,10 @@ class ClassLoader
 		@class_file.fields = load_fields
 		@class_file.methods = load_fields
 		@class_file.attributes = load_attributes
-		@classes[@class_file.this_class_type] = @class_file
 		return @class_file
 	end
 
 	def class_path class_type
 		class_type + '.class'
-	end
-
-	def is_loaded? class_type
-		@classes.has_key? class_type
-	end
-
-	def load_class class_type
-		if is_loaded? class_type
-			return @classes[class_type]
-		else
-			return load_file(class_path(class_type))
-		end
 	end
 end
