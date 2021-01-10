@@ -7,4 +7,8 @@ public class String {
 	public String(byte[] bytes) {
 		this.bytes = bytes;
 	}
+
+	public byte[] getBytes() {
+		return bytes;
+	}
 }
