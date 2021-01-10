@@ -194,8 +194,10 @@ class JVM
 			initialize_fields jvmclass.reference, jvmclass
 			begin
 				clinit = JVMMethod.new(jvmclass, '<clinit>', '()V')
-				run Frame.new(clinit, []) if clinit.attrib
-			end rescue nil
+			rescue
+				clinit = nil
+			end
+			run Frame.new(clinit, []) if clinit
 			@classes[class_type] = jvmclass
 			return jvmclass
 		end
