@@ -38,8 +38,9 @@ class Frame
 		end
 	end
 
-	def next_instruction i = 1
-		@pc += i
+	def next_instruction
+		@pc += 1
+		@code[@pc - 1]
 	end
 
 end
@@ -263,7 +264,6 @@ class JVM
 
 	def handle_exception frame, exception
 		@frames.pop
-		frame.next_instruction -1
 		handler = resolve_exception_handler frame, exception
 		if handler
 			frame.stack = exception
@@ -275,7 +275,7 @@ class JVM
 
 	def resolve_exception_handler frame, exception
 		frame.exceptions.each do |e|
-			if frame.pc >= e.start_pc and frame.pc < e.end_pc and
+			if frame.pc - 1 >= e.start_pc and frame.pc - 1 < e.end_pc and
 				(e.catch_type == 0 or
 				is_type_equal_or_superclass?(exception.class_type,
 					frame.method.jvmclass.class_file.get_attrib_name(e.catch_type)))
@@ -310,8 +310,7 @@ class JVM
 		if frame.code
 			while frame.pc < frame.code.length
 				begin
-					opcode = frame.code[frame.pc]
-					frame.next_instruction
+					opcode = frame.next_instruction
 					case opcode
 					when 0
 					when 1
@@ -331,10 +330,9 @@ class JVM
 					when 8
 						frame.stack.push 5
 					when 16
-						frame.stack.push frame.code[frame.pc]
-						frame.next_instruction
+						frame.stack.push frame.next_instruction
 					when 18
-						index = frame.code[frame.pc]
+						index = frame.next_instruction
 						attrib = frame.method.jvmclass.class_file.constant_pool[index]
 						if attrib.is_a? ConstantPoolConstantValueInfo
 							frame.stack.push attrib.value
@@ -347,15 +345,12 @@ class JVM
 						else
 							fail 'Illegal attribute type'
 						end
-						frame.next_instruction
 					when 20
-						index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						frame.stack.push frame.method.jvmclass.class_file.constant_pool[index].value
-						frame.next_instruction 2
 					when 21, 25
-						frame.stack.push frame.locals[frame.code[frame.pc]]
-						frame.next_instruction
+						frame.stack.push frame.locals[frame.next_instruction]
 					when 26, 42
 						frame.stack.push frame.locals[0]
 					when 27, 43
@@ -369,13 +364,11 @@ class JVM
 						arrayref = frame.stack.pop
 						frame.stack.push arrayref.values[index]
 					when 54, 56, 58
-						frame.locals[frame.code[frame.pc]] = frame.stack.pop
-						frame.next_instruction
+						frame.locals[frame.next_instruction] = frame.stack.pop
 					when 55, 57
-						index = frame.code[frame.pc]
+						index = frame.next_instruction
 						frame.locals[index], frame.locals[index + 1] =
 							BinaryParser.to_8bit(frame.stack.pop)
-						frame.next_instruction
 					when 59, 75
 						frame.locals[0] = frame.stack.pop
 					when 60, 76
@@ -451,33 +444,30 @@ class JVM
 					when 177
 						break
 					when 178
-						field_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
 						jvmclass = load_class(details.class_type)
 						frame.stack.push jvmclass.reference.get_field(JVMField.new(jvmclass,
 							details.field_name, details.field_type))
-						frame.next_instruction 2
 					when 180
-						field_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
 						reference = frame.stack.pop
 						frame.stack.push reference.get_field(JVMField.new(load_class(details.class_type),
 							details.field_name, details.field_type))
-						frame.next_instruction 2
 					when 181
-						field_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
 						value = frame.stack.pop
 						reference = frame.stack.pop
 						reference.set_field(JVMField.new(load_class(details.class_type),
 							details.field_name, details.field_type), value)
-						frame.next_instruction 2
 					when 182, 183, 184, 185
-						method_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						method_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						details = frame.method.jvmclass.class_file.class_and_name_and_type(method_index)
 						method = resolve_method(frame.method.jvmclass,
 							load_class(details.class_type),
@@ -487,34 +477,33 @@ class JVM
 						args_count += 1 if opcode != 184
 						args_count.times { params.push frame.stack.pop }
 						run Frame.new(method, params.reverse)
-						frame.next_instruction 2
-						frame.next_instruction(2) if opcode == 185
+						if opcode == 185
+							frame.next_instruction
+							frame.next_instruction
+						end
 					when 187
-						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						frame.stack.push new_object(frame.method.jvmclass.class_file.get_attrib_name(class_index))
-						frame.next_instruction 2
 					when 188
 						count = frame.stack.pop
-						array_code = frame.code[frame.pc]
+						array_code = frame.next_instruction
 						array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
 						frame.stack.push JavaInstanceArray.new(array_type[array_code], [count])
-						frame.next_instruction
 					when 189
-						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						array_type = "[#{frame.method.jvmclass.class_file.get_attrib_name(class_index)}"
 						count = frame.stack.pop
 						frame.stack.push JavaInstanceArray.new(array_type, [count])
-						frame.next_instruction 2
 					when 190
 						array_reference = frame.stack.pop
 						frame.stack.push array_reference.values.size
 					when 191
 						raise JVMError, frame.stack.pop
 					when 193
-						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
+						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
 						reference = frame.stack.pop
 						if reference
 							frame.stack.push is_type_equal_or_superclass?(reference.class_type,
@@ -522,16 +511,14 @@ class JVM
 						else
 							frame.stack.push 0
 						end
-						frame.next_instruction 2
 					when 197
-						class_index = BinaryParser.to_16bit_unsigned(frame.code[frame.pc],
-							frame.code[frame.pc + 1])
-						dimensions = frame.code[frame.pc + 2]
+						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
+						dimensions = frame.next_instruction
 						counts = []
 						dimensions.times { counts << frame.stack.pop }
 						frame.stack.push JavaInstanceArray.new(frame.method.jvmclass.class_file.get_attrib_name(class_index),
 							counts.reverse)
-						frame.next_instruction 3
 					else
 						fail "Unsupported opcode #{opcode}"
 					end
