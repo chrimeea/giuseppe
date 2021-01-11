@@ -3,10 +3,12 @@ require './native'
 
 class Frame
 
-	attr_reader :stack, :locals, :code, :exceptions, :pc, :method
+	attr_reader :jvmclass, :stack, :locals, :code, :exceptions, :pc, :method
 
-	def initialize method, params
-		code_attr = method.attrib.get_code
+	def initialize jvmclass, method, params
+		@jvmclass = jvmclass
+		code_attr = jvmclass.class_file.get_method(method.method_name,
+			method.method_type).get_code
 		if code_attr
 			@stack = []
 			@code = code_attr.code
@@ -54,12 +56,17 @@ class JavaInstance
 		@fields = {}
 	end
 
-	def set_field field, value
-		@fields[field.id] = value
+	def field_id jvmclass, field
+		"#{jvmclass.class_file.this_class_type}.#{field.field_name}"
 	end
 
-	def get_field field
-		@fields[field.id]
+	def set_field jvmclass, field, value
+		@fields[field_id(jvmclass, field)] = value
+	end
+
+	#todo: search field in superclass if not found in class
+	def get_field jvmclass, field
+		@fields[field_id(jvmclass, field)]
 	end
 
 	def is_class_reference?
@@ -104,17 +111,24 @@ class JVMClass
 		@class_file = class_file
 		@reference = JavaInstance.new
 	end
+
+	def has_method? method
+		begin
+			@class_file.get_method(method.method_name, method.method_type)
+			return true
+		rescue
+			return false
+		end
+	end
 end
 
 class JVMField
 
-	attr_reader :jvmclass, :field_name, :field_type, :id
+	attr_reader :field_name, :field_type
 
-	def initialize jvmclass, field_name, field_type
-		@jvmclass = jvmclass
+	def initialize field_name, field_type
 		@field_name = field_name
 		@field_type = field_type
-		@id = "#{jvmclass.class_file.this_class_type}.#{field_name}"
 	end
 
 	def default_value
@@ -131,17 +145,16 @@ end
 
 class JVMMethod
 
-	attr_reader :jvmclass, :method_name, :method_type, :args, :attrib
+	attr_reader :method_name, :method_type, :args, :attrib
 
-	def initialize jvmclass, method_name, method_type
-		@jvmclass = jvmclass
+	def initialize method_name, method_type
 		@method_name = method_name
 		@method_type = method_type
-		@attrib = jvmclass.class_file.get_method(method_name, method_type)
-		parse_type_descriptors method_type.match(/^\(([^\)]*)\).*$/)[1]
+		parse_type_descriptors
 	end
 
-	def parse_type_descriptors descriptors
+	def parse_type_descriptors
+		descriptors = @method_type.match(/^\(([^\)]*)\).*$/)[1]
 		i = 0
 		@args = []
 		while i < descriptors.size
@@ -165,8 +178,8 @@ class JVMMethod
 		end
 	end
 
-	def native_name
-		n = @jvmclass.class_file.get_attrib_name(@jvmclass.class_file.this_class).sub('/', '_')
+	def native_name jvmclass
+		n = jvmclass.class_file.get_attrib_name(jvmclass.class_file.this_class).sub('/', '_')
 		i = n.rindex('_')
 		if i
 			n[i] = '_jni_'
@@ -193,12 +206,8 @@ class JVM
 			jvmclass = JVMClass.new(@loader.load_file(@loader.class_path(class_type)))
 			initialize_fields jvmclass.reference, jvmclass
 			@classes[class_type] = jvmclass
-			begin
-				clinit = JVMMethod.new(jvmclass, '<clinit>', '()V')
-			rescue
-				clinit = nil
-			end
-			run Frame.new(clinit, []) if clinit
+			clinit = JVMMethod.new('<clinit>', '()V')
+			run Frame.new(jvmclass, clinit, []) if jvmclass.has_method?(clinit)
 			return jvmclass
 		end
 	end
@@ -208,38 +217,37 @@ class JVM
 			jvmclass = load_class class_type
 			arrayref = JavaInstanceArray.new('[Ljava/lang/String;', [ARGV.size - 1])
 			ARGV[1..-1].each { |s| arrayref.values << new_string(s) }
-			run Frame.new(JVMMethod.new(jvmclass, 'main', '([Ljava/lang/String;)V'), [arrayref])
+			run Frame.new(jvmclass, JVMMethod.new('main', '([Ljava/lang/String;)V'), [arrayref])
 		rescue JVMError => e
 			puts e
 		end
 	end
 
-	def resolve_method jvmclass, method_jvmclass, method_name, method_type
-		if jvmclass.class_file.access_flags.is_super? and
-			method_name != '<init>' and
-			is_type_equal_or_superclass?(jvmclass.class_file.this_class_type, method_jvmclass.class_file.this_class_type)
-			begin
-				return JVMMethod.new(jvmclass, method_name, method_type)
-			rescue
-				if jvmclass.class_file.super_class.nonzero?
-					return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)),
-						method_jvmclass, method_name, method_type)
-				else
-					fail "Unknown method #{method_name}"
-				end
+	def resolve_method reference_jvmclass, method_jvmclass, method
+		if reference_jvmclass.class_file.access_flags.is_super? and
+			method.method_name != '<init>' and
+			is_type_equal_or_superclass?(reference_jvmclass.class_file.this_class_type,
+				method_jvmclass.class_file.this_class_type)
+			if reference_jvmclass.has_method?(method)
+				return reference_jvmclass
+			elsif jvmclass.class_file.super_class.nonzero?
+				return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)),
+					method_jvmclass, method)
+			else
+				fail "Unknown method #{method.method_name}"
 			end
 		else
-			return JVMMethod.new(method_jvmclass, method_name, method_type)
+			return method_jvmclass
 		end
 	end
 
 	def initialize_fields reference, jvmclass
 		static = reference.is_class_reference?
 		jvmclass.class_file.fields.select { |f| static == !!f.access_flags.is_static? }.each do |f|
-			jvmfield = JVMField.new(jvmclass,
+			jvmfield = JVMField.new(
 				jvmclass.class_file.constant_pool[f.name_index].value,
 				jvmclass.class_file.constant_pool[f.descriptor_index].value)
-			reference.set_field(jvmfield, jvmfield.default_value)
+			reference.set_field(jvmclass, jvmfield, jvmfield.default_value)
 		end
 		if static == false and jvmclass.class_file.super_class.nonzero?
 			initialize_fields(reference,
@@ -252,8 +260,8 @@ class JVM
 		stringref = new_object class_type
 		arrayref = JavaInstanceArray.new('[B', [ARGV.size - 1])
 		arrayref.values << value.unpack('c*')
-		run Frame.new(JVMMethod.new(load_class(class_type),
-			'<init>', '([B)V'), [stringref, arrayref])
+		run Frame.new(load_class(class_type),
+			JVMMethod.new('<init>', '([B)V'), [stringref, arrayref])
 		return stringref
 	end
 
@@ -280,7 +288,7 @@ class JVM
 			if frame.pc - 1 >= e.start_pc and frame.pc - 1 < e.end_pc and
 				(e.catch_type == 0 or
 				is_type_equal_or_superclass?(exception.class_type,
-					frame.method.jvmclass.class_file.get_attrib_name(e.catch_type)))
+					frame.jvmclass.class_file.get_attrib_name(e.catch_type)))
 				return e
 			end
 		end
@@ -335,12 +343,12 @@ class JVM
 						frame.stack.push frame.next_instruction
 					when 18
 						index = frame.next_instruction
-						attrib = frame.method.jvmclass.class_file.constant_pool[index]
+						attrib = frame.jvmclass.class_file.constant_pool[index]
 						if attrib.is_a? ConstantPoolConstantValueInfo
 							frame.stack.push attrib.value
 						elsif attrib.is_a? ConstantPoolConstantIndex1Info
 							if attrib.is_string?
-								frame.stack.push new_string(frame.method.jvmclass.class_file.constant_pool[attrib.index1].value)
+								frame.stack.push new_string(frame.jvmclass.class_file.constant_pool[attrib.index1].value)
 							else
 								frame.stack.push new_object 'java/lang/Class'
 							end
@@ -350,7 +358,7 @@ class JVM
 					when 20
 						index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						frame.stack.push frame.method.jvmclass.class_file.constant_pool[index].value
+						frame.stack.push frame.jvmclass.class_file.constant_pool[index].value
 					when 21, 25
 						frame.stack.push frame.locals[frame.next_instruction]
 					when 26, 42
@@ -448,52 +456,57 @@ class JVM
 					when 178
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
+						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						jvmclass = load_class(details.class_type)
-						frame.stack.push jvmclass.reference.get_field(JVMField.new(jvmclass,
+						frame.stack.push jvmclass.reference.get_field(jvmclass, JVMField.new(
 							details.field_name, details.field_type))
 					when 179
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
+						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						jvmclass = load_class(details.class_type)
-						jvmclass.reference.set_field(JVMField.new(jvmclass,
+						jvmclass.reference.set_field(jvmclass, JVMField.new(
 							details.field_name, details.field_type), frame.stack.pop)
 					when 180
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
+						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						reference = frame.stack.pop
-						frame.stack.push reference.get_field(JVMField.new(load_class(details.class_type),
-							details.field_name, details.field_type))
+						frame.stack.push reference.get_field(load_class(details.class_type),
+							JVMField.new(details.field_name, details.field_type))
 					when 181
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						details = frame.method.jvmclass.class_file.class_and_name_and_type(field_index)
+						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						value = frame.stack.pop
 						reference = frame.stack.pop
-						reference.set_field(JVMField.new(load_class(details.class_type),
+						reference.set_field(load_class(details.class_type), JVMField.new(
 							details.field_name, details.field_type), value)
 					when 182, 183, 184, 185
 						method_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						details = frame.method.jvmclass.class_file.class_and_name_and_type(method_index)
-						method = resolve_method(frame.method.jvmclass,
-							load_class(details.class_type),
-							details.field_name, details.field_type)
+						details = frame.jvmclass.class_file.class_and_name_and_type(method_index)
+						method = JVMMethod.new(details.field_name, details.field_type)
 						params = []
 						args_count = method.args.size
-						args_count += 1 if opcode != 184
 						args_count.times { params.push frame.stack.pop }
-						run Frame.new(method, params.reverse)
+						if opcode == 184
+							jvmclass = load_class(details.class_type)
+						else
+							reference = frame.stack.pop
+							params.push reference
+							jvmclass = resolve_method(load_class(reference.class_type),
+								load_class(details.class_type), method)
+						end
 						if opcode == 185
 							frame.next_instruction
 							frame.next_instruction
 						end
+						run Frame.new(jvmclass, method, params.reverse)
 					when 187
 						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						frame.stack.push new_object(frame.method.jvmclass.class_file.get_attrib_name(class_index))
+						frame.stack.push new_object(frame.jvmclass.class_file.get_attrib_name(class_index))
 					when 188
 						count = frame.stack.pop
 						array_code = frame.next_instruction
@@ -502,7 +515,7 @@ class JVM
 					when 189
 						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						array_type = "[#{frame.method.jvmclass.class_file.get_attrib_name(class_index)}"
+						array_type = "[#{frame.jvmclass.class_file.get_attrib_name(class_index)}"
 						count = frame.stack.pop
 						frame.stack.push JavaInstanceArray.new(array_type, [count])
 					when 190
@@ -516,7 +529,7 @@ class JVM
 						reference = frame.stack.pop
 						if reference
 							frame.stack.push is_type_equal_or_superclass?(reference.class_type,
-								frame.method.jvmclass.class_file.get_attrib_name(class_index))
+								frame.jvmclass.class_file.get_attrib_name(class_index))
 						else
 							frame.stack.push 0
 						end
@@ -526,7 +539,7 @@ class JVM
 						dimensions = frame.next_instruction
 						counts = []
 						dimensions.times { counts << frame.stack.pop }
-						frame.stack.push JavaInstanceArray.new(frame.method.jvmclass.class_file.get_attrib_name(class_index),
+						frame.stack.push JavaInstanceArray.new(frame.jvmclass.class_file.get_attrib_name(class_index),
 							counts.reverse)
 					else
 						fail "Unsupported opcode #{opcode}"
@@ -544,7 +557,7 @@ class JVM
 				end
 			end
 		else
-			send frame.method.native_name
+			send frame.method.native_name(frame.jvmclass)
 		end
 		@frames.pop
 	end
