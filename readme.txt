@@ -3,7 +3,8 @@ Supports primitive types, arrays, strings and objects.
 Supports instance and static method invocations.
 Supports inheritance, abstract classes and interfaces.
 Supports exceptions (no stack trace yet).
-Incomplete virtual machine instruction set, no native support, no thread support.
+Supports native code (no jni support).
+Incomplete virtual machine instruction set, no thread support.
 Incomplete java lang classes.
 Classpath is only the current folder.
 

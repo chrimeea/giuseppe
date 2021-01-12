@@ -188,7 +188,7 @@ class JVMMethod
 	end
 
 	def native_name jvmclass
-		n = jvmclass.class_file.get_attrib_name(jvmclass.class_file.this_class).sub('/', '_')
+		n = jvmclass.class_file.get_attrib_name(jvmclass.class_file.this_class).gsub('/', '_')
 		i = n.rindex('_')
 		if i
 			n[i] = '_jni_'
@@ -196,7 +196,7 @@ class JVMMethod
 		else
 			n = 'Jni_' + n
 		end
-		n + '_' + @method_name
+		n.gsub('$', '_') + '_' + @method_name
 	end
 end
 
@@ -586,7 +586,7 @@ class JVM
 				end
 			end
 		else
-			send frame.method.native_name(frame.jvmclass)
+			send frame.method.native_name(frame.jvmclass), self, frame.locals
 		end
 		@frames.pop
 	end
