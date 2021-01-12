@@ -587,6 +587,7 @@ class JVM
 			end
 		else
 			send frame.method.native_name(frame.jvmclass), self, frame.locals
+			#todo: put return value on the stack
 		end
 		@frames.pop
 	end
