@@ -64,7 +64,6 @@ class JavaInstance
 		@fields[field_id(jvmclass, field)] = value
 	end
 
-	#todo: search field in superclass if not found in class
 	def get_field jvmclass, field
 		@fields[field_id(jvmclass, field)]
 	end
@@ -103,6 +102,10 @@ class JVMError < StandardError
 	end
 end
 
+#todo: maintain virtual table of methods to avoid resolve_method
+#todo: it will contain the class from where the method is inherited
+#todo: maintain virtual table of fields to avoid resolve_field
+#todo: it will contain the class from where the field is inherited
 class JVMClass
 
 	attr_reader :class_file, :reference
@@ -115,6 +118,15 @@ class JVMClass
 	def has_method? method
 		begin
 			@class_file.get_method(method.method_name, method.method_type)
+			return true
+		rescue
+			return false
+		end
+	end
+
+	def has_field? field
+		begin
+			@class_file.get_field(field.field_name, field.field_type)
 			return true
 		rescue
 			return false
@@ -223,21 +235,33 @@ class JVM
 		end
 	end
 
-	def resolve_method reference_jvmclass, method_jvmclass, method
+	def resolve_field jvmclass, field
+		if jvmclass.has_field?(field)
+			return jvmclass
+		elsif jvmclass.class_file.super_class.nonzero?
+			return resolve_field(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
+		else
+			fail "Unknown field #{field.field_name}"
+		end
+	end
+
+	def resolve_special_method reference_jvmclass, method_jvmclass, method
 		if reference_jvmclass.class_file.access_flags.is_super? and
 			method.method_name != '<init>' and
-			is_type_equal_or_superclass?(reference_jvmclass.class_file.this_class_type,
-				method_jvmclass.class_file.this_class_type)
-			if reference_jvmclass.has_method?(method)
-				return reference_jvmclass
-			elsif jvmclass.class_file.super_class.nonzero?
-				return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)),
-					method_jvmclass, method)
-			else
-				fail "Unknown method #{method.method_name}"
-			end
+			is_type_equal_or_superclass?(reference_jvmclass.class_file.this_class_type, method_jvmclass.class_file.this_class_type)
+			return resolve_method(load_class(reference_jvmclass.class_file.get_attrib_name(reference_jvmclass.class_file.super_class)), method)
 		else
 			return method_jvmclass
+		end
+	end
+
+	def resolve_method jvmclass, method
+		if jvmclass.has_method?(method)
+			return jvmclass
+		elsif jvmclass.class_file.super_class.nonzero?
+			return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
+		else
+			fail "Unknown method #{method.method_name}"
 		end
 	end
 
@@ -458,30 +482,30 @@ class JVM
 							frame.next_instruction)
 						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						jvmclass = load_class(details.class_type)
-						frame.stack.push jvmclass.reference.get_field(jvmclass, JVMField.new(
-							details.field_name, details.field_type))
+						field = JVMField.new(details.field_name, details.field_type)
+						frame.stack.push jvmclass.reference.get_field(resolve_field(jvmclass, field), field)
 					when 179
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
 						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						jvmclass = load_class(details.class_type)
-						jvmclass.reference.set_field(jvmclass, JVMField.new(
-							details.field_name, details.field_type), frame.stack.pop)
+						field = JVMField.new(details.field_name, details.field_type)
+						jvmclass.reference.set_field(resolve_field(jvmclass, field), field, frame.stack.pop)
 					when 180
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
 						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						reference = frame.stack.pop
-						frame.stack.push reference.get_field(load_class(details.class_type),
-							JVMField.new(details.field_name, details.field_type))
+						field = JVMField.new(details.field_name, details.field_type)
+						frame.stack.push reference.get_field(resolve_field(load_class(details.class_type), field), field)
 					when 181
 						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
 						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
 						value = frame.stack.pop
 						reference = frame.stack.pop
-						reference.set_field(load_class(details.class_type), JVMField.new(
-							details.field_name, details.field_type), value)
+						field = JVMField.new(details.field_name, details.field_type)
+						reference.set_field(resolve_field(load_class(details.class_type), field), field, value)
 					when 182, 183, 184, 185
 						method_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
@@ -491,12 +515,16 @@ class JVM
 						args_count = method.args.size
 						args_count.times { params.push frame.stack.pop }
 						if opcode == 184
-							jvmclass = load_class(details.class_type)
+							jvmclass = resolve_method(load_class(details.class_type), method)
 						else
 							reference = frame.stack.pop
 							params.push reference
-							jvmclass = resolve_method(load_class(reference.class_type),
-								load_class(details.class_type), method)
+							if opcode == 183
+								jvmclass = resolve_special_method(load_class(reference.class_type),
+									load_class(details.class_type), method)
+							else
+								jvmclass = resolve_method(load_class(reference.class_type), method)
+							end
 						end
 						if opcode == 185
 							frame.next_instruction
