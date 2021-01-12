@@ -104,7 +104,7 @@ end
 
 class JVMClass
 
-	attr_reader :class_file, :reference, :resolve_field, :resolve_method
+	attr_reader :class_file, :reference, :resolved
 
 	def initialize class_file
 		@class_file = class_file
