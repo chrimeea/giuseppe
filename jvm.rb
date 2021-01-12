@@ -102,17 +102,14 @@ class JVMError < StandardError
 	end
 end
 
-#todo: maintain virtual table of methods to avoid resolve_method
-#todo: it will contain the class from where the method is inherited
-#todo: maintain virtual table of fields to avoid resolve_field
-#todo: it will contain the class from where the field is inherited
 class JVMClass
 
-	attr_reader :class_file, :reference
+	attr_reader :class_file, :reference, :resolve_field, :resolve_method
 
 	def initialize class_file
 		@class_file = class_file
 		@reference = JavaInstance.new
+		@resolved = {}
 	end
 
 	def has_method? method
@@ -236,7 +233,9 @@ class JVM
 	end
 
 	def resolve_field jvmclass, field
-		if jvmclass.has_field?(field)
+		if jvmclass.resolved.has_key? field
+			return jvmclass.resolved[field]
+		elsif jvmclass.has_field?(field)
 			return jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			return resolve_field(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
@@ -256,7 +255,9 @@ class JVM
 	end
 
 	def resolve_method jvmclass, method
-		if jvmclass.has_method?(method)
+		if jvmclass.resolved.has_key? method
+			return jvmclass.resolved[method]
+		elsif jvmclass.has_method?(method)
 			return jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
