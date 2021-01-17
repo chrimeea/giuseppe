@@ -86,6 +86,15 @@ class JavaInstanceArray < JavaInstance
 		end
 		super class_type
 	end
+
+	def element_type
+		t = @class_type.gsub('[', '')
+		if t[0] == 'L'
+			return t[1..-2]
+		else
+			return t
+		end
+	end
 end
 
 class JVMError < StandardError
@@ -154,7 +163,7 @@ end
 
 class JVMMethod
 
-	attr_reader :method_name, :method_type, :args, :attrib
+	attr_reader :method_name, :method_type, :args, :attrib, :retval
 
 	def initialize method_name, method_type
 		@method_name = method_name
@@ -163,7 +172,8 @@ class JVMMethod
 	end
 
 	def parse_type_descriptors
-		descriptors = @method_type.match(/^\(([^\)]*)\).*$/)[1]
+		pattern = @method_type.match(/^\(([^\)]*)\)(.+)$/)
+		descriptors = pattern[1]
 		i = 0
 		@args = []
 		while i < descriptors.size
@@ -185,6 +195,11 @@ class JVMMethod
 			end
 			i += 1
 		end
+		@retval = pattern[2]
+	end
+
+	def has_return_value?
+		@retval != 'V'
 	end
 
 	def native_name jvmclass
@@ -225,7 +240,7 @@ class JVM
 		begin
 			jvmclass = load_class class_type
 			arrayref = JavaInstanceArray.new('[Ljava/lang/String;', [ARGV.size - 1])
-			ARGV[1..-1].each { |s| arrayref.values << new_string(s) }
+			ARGV[1..-1].each_with_index { |s, i| arrayref.values[i] = new_string(s) }
 			run Frame.new(jvmclass, JVMMethod.new('main', '([Ljava/lang/String;)V'), [arrayref])
 		rescue JVMError => e
 			puts e
@@ -283,8 +298,8 @@ class JVM
 	def new_string value
 		class_type = 'java/lang/String'
 		stringref = new_object class_type
-		arrayref = JavaInstanceArray.new('[B', [ARGV.size - 1])
-		arrayref.values << value.unpack('c*')
+		arrayref = JavaInstanceArray.new('[B', value.chars.size)
+		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
 		run Frame.new(load_class(class_type),
 			JVMMethod.new('<init>', '([B)V'), [stringref, arrayref])
 		return stringref
@@ -586,8 +601,8 @@ class JVM
 				end
 			end
 		else
-			send frame.method.native_name(frame.jvmclass), self, frame.locals
-			#todo: put return value on the stack
+			retval = send frame.method.native_name(frame.jvmclass), self, frame.locals
+			@frames[-2].stack.push(retval) if frame.method.has_return_value?
 		end
 		@frames.pop
 	end
