@@ -217,6 +217,8 @@ end
 
 class JVM
 
+	attr_reader :frames
+
 	def initialize
 		@loader = ClassLoader.new
 		@frames = []
@@ -298,7 +300,7 @@ class JVM
 	def new_string value
 		class_type = 'java/lang/String'
 		stringref = new_object class_type
-		arrayref = JavaInstanceArray.new('[B', value.chars.size)
+		arrayref = JavaInstanceArray.new('[B', [value.chars.size])
 		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
 		run Frame.new(load_class(class_type),
 			JVMMethod.new('<init>', '([B)V'), [stringref, arrayref])

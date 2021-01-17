@@ -4,11 +4,10 @@ end
 
 def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	elem_class_type = 'java/lang/StackTraceElement'
-	array_class_type = "[L#{class_type};"
+	array_class_type = "[L#{elem_class_type};"
 	elem_jvmclass = jvm.load_class(elem_class_type)
 	arrayref = JavaInstanceArray.new(array_class_type, [jvm.frames.size])
-	v = []
-	jvm.frames.each do |f|
+	jvm.frames.each_with_index do |f, i|
 		elementref = jvm.new_object elem_class_type
 		run Frame.new(elem_jvmclass,
 			JVMMethod.new('<init>',
@@ -18,13 +17,12 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 				jvm.new_string(f.method.method_name),
 				nil,
 				0])
-		v << elementref
+		arrayref.values[i] = elementref
 	end
-	arrayref.values = v
-	throwableref = params.first
-	throwable_jvmclass = jvm.load_class(throwableref.class_type)
-	run Frame.new(throwable_jvmclass,
-		JVMMethod.new('setStackTrace', "(#{array_class_type})V"),
-		[throwableref, arrayref])
-	return throwableref
+	reference = params.first
+	method = JVMMethod.new('setStackTrace', "(#{array_class_type})V")
+	run Frame.new(jvm.resolve_method(jvm.load_class(reference.class_type), method),
+		method,
+		[reference, arrayref])
+	return reference
 end
