@@ -9,8 +9,8 @@ class Frame
 		@jvmclass = jvmclass
 		code_attr = jvmclass.class_file.get_method(method.method_name,
 			method.method_type).get_code
+		@stack = []
 		if code_attr
-			@stack = []
 			@code = code_attr.code
 			@exceptions = code_attr.exception_table
 			p = params.reverse
@@ -30,6 +30,10 @@ class Frame
 		end
 		@method = method
 		@pc = 0
+	end
+
+	def is_native?
+		@code.nil?
 	end
 
 	def goto_if
@@ -240,12 +244,14 @@ class JVM
 
 	def run_main class_type
 		begin
-			jvmclass = load_class class_type
 			arrayref = JavaInstanceArray.new('[Ljava/lang/String;', [ARGV.size - 1])
-			ARGV[1..-1].each_with_index { |s, i| arrayref.values[i] = new_string(s) }
-			run Frame.new(jvmclass, JVMMethod.new('main', '([Ljava/lang/String;)V'), [arrayref])
+			ARGV[1..-1].each_with_index { |s, i| arrayref.values[i] = new_java_string(s) }
+			run Frame.new(load_class(class_type), JVMMethod.new('main', '([Ljava/lang/String;)V'), [arrayref])
 		rescue JVMError => e
-			puts e
+			method = JVMMethod.new('printStackTrace', '()V')
+			run Frame.new(resolve_method(load_class(e.exception.class_type), method),
+				method,
+				[e.exception])
 		end
 	end
 
@@ -297,9 +303,9 @@ class JVM
 		end
 	end
 
-	def new_string value
+	def new_java_string value
 		class_type = 'java/lang/String'
-		stringref = new_object class_type
+		stringref = new_java_object class_type
 		arrayref = JavaInstanceArray.new('[B', [value.chars.size])
 		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
 		run Frame.new(load_class(class_type),
@@ -307,7 +313,18 @@ class JVM
 		return stringref
 	end
 
-	def new_object class_type
+	def new_java_class value
+		result = run Frame.new(load_class('java/lang/Class'),
+			JVMMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
+			[new_java_string(value)])
+		if @frames.last.is_native?
+			return result
+		else
+			return @frames.last.stack.pop
+		end
+	end
+
+	def new_java_object class_type
 		jvmclass = load_class class_type
 		reference = JavaInstance.new(class_type)
 		initialize_fields reference, jvmclass
@@ -359,6 +376,7 @@ class JVM
 
 	def run frame
 		@frames.push frame
+		#p [@frames.size, frame.jvmclass.class_file.this_class_type, frame.method.method_name]
 		if frame.code
 			while frame.pc < frame.code.length
 				begin
@@ -389,10 +407,11 @@ class JVM
 						if attrib.is_a? ConstantPoolConstantValueInfo
 							frame.stack.push attrib.value
 						elsif attrib.is_a? ConstantPoolConstantIndex1Info
+							value = frame.jvmclass.class_file.constant_pool[attrib.index1].value
 							if attrib.is_string?
-								frame.stack.push new_string(frame.jvmclass.class_file.constant_pool[attrib.index1].value)
+								frame.stack.push new_java_string(value)
 							else
-								frame.stack.push new_object 'java/lang/Class'
+								frame.stack.push new_java_class(value)
 							end
 						else
 							fail 'Illegal attribute type'
@@ -491,8 +510,13 @@ class JVM
 					when 167
 						frame.goto_if { true }
 					when 172, 176
-						@frames[-2].stack.push frame.stack.pop
-						break
+						if @frames[-2].is_native?
+							@frames.pop
+							return frame.stack.pop
+						else
+							@frames[-2].stack.push frame.stack.pop
+							break
+						end			
 					when 177
 						break
 					when 178
@@ -552,7 +576,7 @@ class JVM
 					when 187
 						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
-						frame.stack.push new_object(frame.jvmclass.class_file.get_attrib_name(class_index))
+						frame.stack.push new_java_object(frame.jvmclass.class_file.get_attrib_name(class_index))
 					when 188
 						count = frame.stack.pop
 						array_code = frame.next_instruction
@@ -587,24 +611,35 @@ class JVM
 						dimensions.times { counts << frame.stack.pop }
 						frame.stack.push JavaInstanceArray.new(frame.jvmclass.class_file.get_attrib_name(class_index),
 							counts.reverse)
+					when 198
+						frame.goto_if { frame.stack.pop.nil? }
+					when 199
+						frame.goto_if { frame.stack.pop }
 					else
 						fail "Unsupported opcode #{opcode}"
 					end
 				rescue JVMError => e
 					handle_exception frame, e.exception
 				rescue ZeroDivisionError
-					handle_exception frame, new_object('java/lang/ArithmeticException')
-				rescue NoMethodError => e
-					if e.receiver
-						raise e
-					else
-						handle_exception frame, new_object('java/lang/NullPointerException')
-					end
+					handle_exception frame, new_java_object('java/lang/ArithmeticException')
+				# rescue NoMethodError => e
+				# 	if e.receiver
+				# 		raise e
+				# 	else
+				# 		handle_exception frame, new_java_object('java/lang/NullPointerException')
+				# 	end
 				end
 			end
 		else
 			retval = send frame.method.native_name(frame.jvmclass), self, frame.locals
-			@frames[-2].stack.push(retval) if frame.method.has_return_value?
+			if frame.method.has_return_value?
+				if @frames[-2].is_native?
+					@frames.pop
+					return retval
+				else
+					@frames[-2].stack.push(retval)
+				end
+			end
 		end
 		@frames.pop
 	end

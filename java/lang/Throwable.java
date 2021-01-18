@@ -12,5 +12,9 @@ public class Throwable {
 		this.stackTrace = stackTrace;
 	}
 
+	public void printStackTrace() {
+		System.out.println(toString());
+	}
+
 	public native Throwable fillInStackTrace();
 }
