@@ -141,7 +141,7 @@ class ClassLoader
 			when 'Deprecated'
 				a = ClassAttributeDeprecated.new
 			else
-				puts "Warning: unknown attribute #{attribute_type}"
+				$logger.warn('classloader.rb') { "unknown attribute #{attribute_type}" }
 				a = ClassAttribute.new
 				a.info = @parser.load_u1_array(attribute_length)
 			end
