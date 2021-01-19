@@ -332,7 +332,6 @@ class JVM
 	end
 
 	def handle_exception frame, exception
-		@frames.pop
 		handler = resolve_exception_handler frame, exception
 		if handler
 			frame.stack = exception
@@ -375,8 +374,23 @@ class JVM
 	end
 
 	def run frame
-		@frames.push frame
-		#p [@frames.size, frame.jvmclass.class_file.this_class_type, frame.method.method_name]
+		begin
+			@frames.push frame
+			#p [@frames.size, frame.jvmclass.class_file.this_class_type, frame.method.method_name]
+			result = run_and_return frame
+			if frame.method.has_return_value?
+				if @frames[-2].is_native?
+					return result
+				else
+					@frames[-2].stack.push(result)
+				end
+			end
+		ensure
+			@frames.pop
+		end
+	end
+
+	def run_and_return frame
 		if frame.code
 			while frame.pc < frame.code.length
 				begin
@@ -510,13 +524,7 @@ class JVM
 					when 167
 						frame.goto_if { true }
 					when 172, 176
-						if @frames[-2].is_native?
-							@frames.pop
-							return frame.stack.pop
-						else
-							@frames[-2].stack.push frame.stack.pop
-							break
-						end			
+						return frame.stack.pop
 					when 177
 						break
 					when 178
@@ -622,25 +630,16 @@ class JVM
 					handle_exception frame, e.exception
 				rescue ZeroDivisionError
 					handle_exception frame, new_java_object('java/lang/ArithmeticException')
-				# rescue NoMethodError => e
-				# 	if e.receiver
-				# 		raise e
-				# 	else
-				# 		handle_exception frame, new_java_object('java/lang/NullPointerException')
-				# 	end
+				rescue NoMethodError => e
+					if e.receiver
+						raise e
+					else
+						handle_exception frame, new_java_object('java/lang/NullPointerException')
+					end
 				end
 			end
 		else
-			retval = send frame.method.native_name(frame.jvmclass), self, frame.locals
-			if frame.method.has_return_value?
-				if @frames[-2].is_native?
-					@frames.pop
-					return retval
-				else
-					@frames[-2].stack.push(retval)
-				end
-			end
+			send frame.method.native_name(frame.jvmclass), self, frame.locals
 		end
-		@frames.pop
 	end
 end
