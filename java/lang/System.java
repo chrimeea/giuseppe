@@ -12,9 +12,5 @@ public class System {
 		public native void write(byte[] b);
 	});
 
-	public static native void arraycopy(Object src,
-             int srcPos,
-             Object dest,
-             int destPos,
-             int length);
+	public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
 }

@@ -6,5 +6,7 @@ public class Object {
 
 	public native int hashCode();
 
+	public native boolean equals(Object obj);
+
 	public native String toString();
 }

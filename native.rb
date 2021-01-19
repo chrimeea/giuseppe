@@ -19,6 +19,10 @@ def Java_lang_jni_Object_hashCode jvm, params
 	params.first.hash
 end
 
+def Java_lang_jni_Object_equals jvm, params
+	params[0] == params[1] ? 1 : 0
+end
+
 def Java_lang_jni_Object_toString jvm, params
 	reference = params.first
 	method = JVMMethod.new('getClass', '()Ljava/lang/Class;')
