@@ -371,7 +371,7 @@ class JVM
 	def run frame
 		begin
 			@frames.push frame
-			#p [@frames.size, frame.jvmclass.class_file.this_class_type, frame.method.method_name]
+			$logger.debug('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}" }
 			result = run_and_return frame
 			if frame.method.has_return_value?
 				if @frames[-2].is_native?
