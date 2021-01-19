@@ -314,14 +314,9 @@ class JVM
 	end
 
 	def new_java_class value
-		result = run Frame.new(load_class('java/lang/Class'),
+		run_and_return Frame.new(load_class('java/lang/Class'),
 			JVMMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
 			[new_java_string(value)])
-		if @frames.last.is_native?
-			return result
-		else
-			return @frames.last.stack.pop
-		end
 	end
 
 	def new_java_object class_type
