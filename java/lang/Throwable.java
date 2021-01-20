@@ -21,7 +21,7 @@ public class Throwable {
 		s.append(getClass().getName()).append("\n");
 		if (stackTrace != null) {
 			for (int i = 0; i < stackTrace.length; i++) {
-				s.append("at ")
+				s.append("\tat ")
 					.append(stackTrace[i].getClassName())
 					.append(".")
 					.append(stackTrace[i].getMethodName())
