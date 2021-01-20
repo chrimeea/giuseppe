@@ -409,7 +409,7 @@ class JVM
 					when 8
 						frame.stack.push 5
 					when 16
-						frame.stack.push frame.next_instruction
+						frame.stack.push BinaryParser.to_8bit_signed(frame.next_instruction)
 					when 18
 						index = frame.next_instruction
 						attrib = frame.jvmclass.class_file.constant_pool[index]
@@ -492,6 +492,8 @@ class JVM
 						frame.stack.push(frame.stack.pop | frame.stack.pop)
 					when 130
 						frame.stack.push(frame.stack.pop ^ frame.stack.pop)
+					when 132
+						frame.locals[frame.next_instruction] += BinaryParser.to_8bit_signed(frame.next_instruction)
 					when 153
 						frame.goto_if { frame.stack.pop.zero? }
 					when 154
@@ -516,6 +518,10 @@ class JVM
 						frame.goto_if { frame.stack.pop < frame.stack.pop }
 					when 164
 						frame.goto_if { frame.stack.pop >= frame.stack.pop }
+					when 165
+						frame.goto_if { frame.stack.pop == frame.stack.pop }
+					when 166
+						frame.goto_if { frame.stack.pop != frame.stack.pop }
 					when 167
 						frame.goto_if { true }
 					when 172, 176

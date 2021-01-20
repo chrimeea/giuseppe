@@ -12,6 +12,10 @@ public class StringBuilder {
 		return this;
 	}
 
+	public StringBuilder append(int i) {
+		return append(String.valueOf(i));
+	}
+
 	public String toString() {
 		return str;
 	}

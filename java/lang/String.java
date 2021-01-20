@@ -22,4 +22,6 @@ public class String {
 		System.arraycopy(bstr, 0, bconcat, bytes.length, bstr.length);
 		return new String(bconcat);
 	}
+
+	public static native String valueOf(int i);
 }

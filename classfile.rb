@@ -44,8 +44,7 @@ class BinaryParser
 	def self.to_16bit_signed(byte1, byte2)
 		value_16bit = to_16bit_unsigned(byte1, byte2)
 		sign = value_16bit & 32768
-		value_16bit = value_16bit & 32767
-		value_16bit = -value_16bit if sign.nonzero?
+		value_16bit -= 65536 if sign.nonzero?
 		return value_16bit
 	end
 
@@ -53,8 +52,14 @@ class BinaryParser
 		(byte1 << 8) | byte2
 	end
 
-	def self.to_8bit(value)
-		value.divmod 256
+	def self.to_8bit(value_16bit)
+		value_16bit.divmod 256
+	end
+
+	def self.to_8bit_signed(byte_unsigned)
+		sign = byte_unsigned & 128
+		byte_unsigned -= 256 if sign.nonzero?
+		return byte_unsigned
 	end
 end
 
@@ -243,6 +248,11 @@ class ClassFile
 
 	def this_class_type
 		get_attrib_name(@this_class)
+	end
+
+	def source_file
+		a = @attributes.find { |a| a.is_a? ClassAttributeSourceFile }
+		@constant_pool[a.sourcefile_index].value if a
 	end
 
 	def get_method method_name, method_type

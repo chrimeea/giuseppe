@@ -6,7 +6,11 @@ public class Object {
 
 	public native int hashCode();
 
-	public native boolean equals(Object obj);
+	public boolean equals(Object obj) {
+		return this == obj;
+	}
 
-	public native String toString();
+	public String toString() {
+		return getClass().getName() + "@" + hashCode();
+	}
 }

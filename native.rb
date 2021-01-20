@@ -7,11 +7,7 @@ def Java_lang_jni_System_2_write jvm, params
 end
 
 def Java_lang_jni_System_arraycopy jvm, params	
-	src = params[0]
-	srcpos = params[1]
-	dst = params[2]
-	dstpos = params[3]
-	length = params[4]
+	src, srcpos, dst, dstpos, length = params
 	dst.values[dstpos...(dstpos + length)] = src.values[srcpos...(srcpos + length)]
 end
 
@@ -19,28 +15,12 @@ def Java_lang_jni_Object_hashCode jvm, params
 	params.first.hash
 end
 
-def Java_lang_jni_Object_equals jvm, params
-	params[0] == params[1] ? 1 : 0
-end
-
-def Java_lang_jni_Object_toString jvm, params
-	reference = params.first
-	method = JVMMethod.new('getClass', '()Ljava/lang/Class;')
-	class_reference = jvm.run Frame.new(
-		jvm.resolve_method(jvm.load_class(reference.class_type), method),
-		method,
-		[reference])
-	name_reference = jvm.run Frame.new(jvm.load_class(class_reference.class_type),
-		JVMMethod.new('getName', '()Ljava/lang/String;'),
-		[class_reference])
-	id_reference = jvm.new_java_string("@#{params.first.object_id.to_s(16)}")
-	jvm.run Frame.new(jvm.load_class(name_reference.class_type),
-		JVMMethod.new('concat', '(Ljava/lang/String;)Ljava/lang/String;'),
-		[name_reference, id_reference])
-end
-
 def Java_lang_jni_Object_getClass jvm, params
 	jvm.new_java_class params.first.class_type
+end
+
+def Java_lang_jni_String_valueOf jvm, params
+	jvm.new_java_string params.first.to_s
 end
 
 def Java_lang_jni_Throwable_fillInStackTrace jvm, params
@@ -56,7 +36,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 			[elementref,
 				jvm.new_java_string(f.jvmclass.class_file.this_class_type),
 				jvm.new_java_string(f.method.method_name),
-				nil,
+				jvm.new_java_string(f.jvmclass.class_file.source_file),
 				0])
 		arrayref.values[i] = elementref
 	end

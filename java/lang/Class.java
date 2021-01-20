@@ -17,6 +17,10 @@ public class Class<T> {
 	}
 
 	public String toString() {
-		return "class " + name;
+		if (this == Void.TYPE) {
+			return "void";
+		} else {
+			return "class " + name;
+		}
 	}
 }

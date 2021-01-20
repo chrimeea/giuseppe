@@ -13,7 +13,26 @@ public class Throwable {
 	}
 
 	public void printStackTrace() {
-		System.out.println(toString());
+		System.err.println(toString());
+	}
+
+	public String toString() {
+		StringBuilder s = new StringBuilder();
+		s.append(getClass().getName()).append("\n");
+		if (stackTrace != null) {
+			for (int i = 0; i < stackTrace.length; i++) {
+				s.append("at ")
+					.append(stackTrace[i].getClassName())
+					.append(".")
+					.append(stackTrace[i].getMethodName())
+					.append("(")
+					.append(stackTrace[i].getFileName())
+					.append(":")
+					.append(stackTrace[i].getLineNumber())
+					.append(")\n");
+			}
+		}
+		return s.toString();
 	}
 
 	public native Throwable fillInStackTrace();
