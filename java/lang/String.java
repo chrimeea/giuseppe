@@ -24,4 +24,12 @@ public class String {
 	}
 
 	public static native String valueOf(int i);
+
+	public static String valueOf(Object obj) {
+		if (obj == null) {
+			return "null";
+		} else {
+			return obj.toString();
+		}
+	}
 }

@@ -16,6 +16,10 @@ public class StringBuilder {
 		return append(String.valueOf(i));
 	}
 
+	public StringBuilder append(Object obj) {
+		return append(String.valueOf(obj));
+	}
+
 	public String toString() {
 		return str;
 	}

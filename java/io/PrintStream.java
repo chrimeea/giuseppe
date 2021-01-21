@@ -16,9 +16,17 @@ public class PrintStream extends FilterOutputStream {
 		out.write(s.getBytes());
 	}
 
+	public void print(Object obj) {
+		print(String.valueOf(obj));
+	}
+
 	public void println(String s) {
 		print(s);
 		println();
 	}
 
+	public void println(Object s) {
+		print(s);
+		println();
+	}
 }
