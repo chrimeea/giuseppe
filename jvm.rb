@@ -3,15 +3,14 @@ require './native'
 
 class Frame
 
-	attr_reader :jvmclass, :stack, :locals, :code, :exceptions, :pc, :method
+	attr_reader :jvmclass, :stack, :locals, :code_attr, :exceptions, :pc, :method
 
 	def initialize jvmclass, method, params
 		@jvmclass = jvmclass
-		code_attr = jvmclass.class_file.get_method(method.method_name,
+		@code_attr = jvmclass.class_file.get_method(method.method_name,
 			method.method_type).get_code
-		@stack = []
-		if code_attr
-			@code = code_attr.code
+		if @code_attr
+			@stack = []
 			@exceptions = code_attr.exception_table
 			p = params.reverse
 			@locals = []
@@ -33,12 +32,12 @@ class Frame
 	end
 
 	def is_native?
-		@code.nil?
+		@code_attr.code.nil?
 	end
 
 	def goto_if
 		if yield
-			@pc += BinaryParser.to_16bit_signed(@code[@pc], @code[@pc + 1]) - 1
+			@pc += BinaryParser.to_16bit_signed(@code_attr.code[@pc], @code_attr.code[@pc + 1]) - 1
 		else
 			@pc += 2
 		end
@@ -46,7 +45,7 @@ class Frame
 
 	def next_instruction
 		@pc += 1
-		@code[@pc - 1]
+		@code_attr.code[@pc - 1]
 	end
 
 end
@@ -386,8 +385,8 @@ class JVM
 	end
 
 	def run_and_return frame
-		if frame.code
-			while frame.pc < frame.code.length
+		if frame.code_attr
+			while frame.pc < frame.code_attr.code.length
 				begin
 					opcode = frame.next_instruction
 					case opcode

@@ -39,7 +39,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 				jvm.new_java_string(f.jvmclass.class_file.this_class_type),
 				jvm.new_java_string(f.method.method_name),
 				jvm.new_java_string(f.jvmclass.class_file.source_file),
-				0])
+				f.code_attr.line_number_for_pc(f.pc)])
 		stacktrace << elementref
 	end
 	arrayref = JavaInstanceArray.new(array_class_type, [stacktrace.size])

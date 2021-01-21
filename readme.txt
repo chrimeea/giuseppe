@@ -2,7 +2,7 @@ Implementation of the java virtual machine 1.6 for educational purposes written 
 Supports primitive types, arrays, strings and objects.
 Supports instance and static method invocations.
 Supports inheritance, abstract classes and interfaces.
-Supports exceptions (no stack trace yet).
+Supports exceptions.
 Supports native code (no jni support).
 Incomplete virtual machine instruction set, no thread support.
 Incomplete java lang classes.

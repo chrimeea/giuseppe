@@ -91,6 +91,16 @@ class ClassAttributeCode < ClassAttribute
 
 		attr_accessor :start_pc, :end_pc, :handler_pc, :catch_type
 	end
+
+	def line_number_for_pc(pc)
+		a = @attributes.find { |a| a.is_a? ClassAttributeLineNumber }
+		l = 0
+		a.line_number_table.each do |t|
+			break if t.start_pc > pc
+			l = t.line_number
+		end
+		return l;
+	end
 end
 
 class ClassAttributeExceptions < ClassAttribute
