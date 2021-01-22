@@ -16,6 +16,8 @@ public class Class<T> {
 		return new Class(className);
 	}
 
+	public native boolean isInterface();
+
 	public String toString() {
 		if (this == Void.TYPE) {
 			return "void";
@@ -35,6 +37,8 @@ public class Class<T> {
 			return "double";
 		} else if (this == Integer.TYPE) {
 			return "int";
+		} else if (isInterface()) {
+			return "interface " + name;
 		} else {
 			return "class " + name;
 		}

@@ -302,6 +302,14 @@ class JVM
 		end
 	end
 
+	def to_native_string reference
+		method = JVMMethod.new('getBytes', '()[B')
+		arrayref = run_and_return Frame.new(resolve_method(load_class(reference.class_type), method),
+			method,
+			[reference])
+		arrayref.values.pack('c*')
+	end
+
 	def new_java_string value
 		class_type = 'java/lang/String'
 		stringref = new_java_object class_type

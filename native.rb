@@ -23,6 +23,13 @@ def Java_lang_jni_String_valueOf jvm, params
 	jvm.new_java_string params.first.to_s
 end
 
+def Java_lang_jni_Class_isInterface jvm, params
+	reference = params.first
+	field = JVMField.new('name', 'Ljava/lang/String;')
+	nameref = reference.get_field(jvm.resolve_field(jvm.load_class(reference.class_type), field), field)
+	jvm.load_class(jvm.to_native_string(nameref)).class_file.access_flags.is_interface? ? 1 : 0
+end
+
 def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	reference = params.first
 	elem_class_type = 'java/lang/StackTraceElement'
