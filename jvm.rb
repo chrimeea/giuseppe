@@ -614,8 +614,8 @@ class JVM
 							frame.next_instruction)
 						reference = frame.stack.pop
 						if reference
-							frame.stack.push is_type_equal_or_superclass?(reference.class_type,
-								frame.jvmclass.class_file.get_attrib_name(class_index))
+							frame.stack.push(is_type_equal_or_superclass?(reference.class_type,
+								frame.jvmclass.class_file.get_attrib_name(class_index)) ? 1 : 0)
 						else
 							frame.stack.push 0
 						end

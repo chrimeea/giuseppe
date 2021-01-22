@@ -25,11 +25,23 @@ public class String {
 
 	public static native String valueOf(int i);
 
+	public static String valueOf(boolean b) {
+		return b ? "true" : "false";
+	}
+
 	public static String valueOf(Object obj) {
 		if (obj == null) {
 			return "null";
 		} else {
 			return obj.toString();
+		}
+	}
+
+	public boolean equals(Object obj) {
+		if (obj instanceof String) {
+			return Arrays.equals(bytes, ((String) obj).bytes);
+		} else {
+			return false;
 		}
 	}
 }

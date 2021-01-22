@@ -12,12 +12,21 @@ public class PrintStream extends FilterOutputStream {
 		out.write(nl);
 	}
 
+	public void print(boolean b) {
+		print(String.valueOf(b));
+	}
+
 	public void print(String s) {
 		out.write(s.getBytes());
 	}
 
 	public void print(Object obj) {
 		print(String.valueOf(obj));
+	}
+
+	public void println(boolean b) {
+		print(b);
+		println();
 	}
 
 	public void println(String s) {
