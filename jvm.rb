@@ -450,6 +450,10 @@ class JVM
 						index = frame.stack.pop
 						arrayref = frame.stack.pop
 						frame.stack.push arrayref.values[index]
+					when 51
+						index = frame.stack.pop
+						arrayref = frame.stack.pop
+						frame.stack.push BinaryParser.to_8bit_signed(arrayref.values[index])
 					when 54, 56, 58
 						frame.locals[frame.next_instruction] = frame.stack.pop
 					when 55, 57
@@ -609,6 +613,15 @@ class JVM
 						frame.stack.push array_reference.values.size
 					when 191
 						raise JVMError, frame.stack.pop
+					when 192
+						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+							frame.next_instruction)
+						reference = frame.stack.last
+						if reference and not is_type_equal_or_superclass?(reference.class_type, frame.jvmclass.class_file.get_attrib_name(class_index))
+							exception = new_java_object 'java/lang/ClassCastException'
+							run Frame.new(load_class(exception.class_type), JVMMethod.new('<init>', '()V'))
+							raise JVMError, exception
+						end
 					when 193
 						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
 							frame.next_instruction)
