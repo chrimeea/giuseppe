@@ -1,8 +1,11 @@
 package java.lang;
 
+import java.util.ArrayList;
+
 public class String {
 
 	private byte[] bytes;
+	private static ArrayList<String> pool = new ArrayList<String>();
 
 	public String(byte[] bytes) {
 		this.bytes = new byte[bytes.length];
@@ -42,6 +45,16 @@ public class String {
 			return Arrays.equals(bytes, ((String) obj).bytes);
 		} else {
 			return false;
+		}
+	}
+
+	public String intern() {
+		int i = String.pool.indexOf(this);
+		if (i == -1) {
+			String.pool.add(this);
+			return this;
+		} else {
+			return String.pool.get(i);
 		}
 	}
 }

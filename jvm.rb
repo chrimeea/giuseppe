@@ -284,7 +284,7 @@ class JVM
 		elsif jvmclass.class_file.super_class.nonzero?
 			return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
 		else
-			fail "Unknown method #{method.method_name}"
+			fail "Unknown method #{method.method_name} #{method.method_type}"
 		end
 	end
 
@@ -425,7 +425,12 @@ class JVM
 						elsif attrib.is_a? ConstantPoolConstantIndex1Info
 							value = frame.jvmclass.class_file.constant_pool[attrib.index1].value
 							if attrib.is_string?
-								frame.stack.push new_java_string(value)
+								reference = new_java_string(value)
+								frame.stack.push reference
+								method = JVMMethod.new('intern', '()Ljava/lang/String;')
+								run_and_return Frame.new(resolve_method(load_class(reference.class_type), method),
+									method,
+									[reference])
 							else
 								frame.stack.push new_java_class(value)
 							end
@@ -619,7 +624,7 @@ class JVM
 						reference = frame.stack.last
 						if reference and not is_type_equal_or_superclass?(reference.class_type, frame.jvmclass.class_file.get_attrib_name(class_index))
 							exception = new_java_object 'java/lang/ClassCastException'
-							run Frame.new(load_class(exception.class_type), JVMMethod.new('<init>', '()V'))
+							run_and_return Frame.new(load_class(exception.class_type), JVMMethod.new('<init>', '()V'))
 							raise JVMError, exception
 						end
 					when 193
