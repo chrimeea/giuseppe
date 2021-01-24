@@ -16,6 +16,10 @@ public class Class<T> {
 		return new Class(className);
 	}
 
+	public boolean desiredAssertionStatus() {
+		return true;
+	}
+
 	public native boolean isInterface();
 
 	public String toString() {
