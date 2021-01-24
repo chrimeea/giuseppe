@@ -376,296 +376,301 @@ class JVM
 	end
 
 	def run frame
-		begin
-			@frames.push frame
-			$logger.debug('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}" }
-			result = run_and_return frame
-			if frame.method.has_return_value?
-				if @frames[-2].is_native?
-					return result
-				else
-					@frames[-2].stack.push(result)
-				end
+		result = run_and_return frame
+		if frame.method.has_return_value?
+			if @frames.last.is_native?
+				return result
+			else
+				@frames.last.stack.push(result)
 			end
-		ensure
-			@frames.pop
 		end
 	end
 
 	def run_and_return frame
-		if frame.code_attr
-			while frame.pc < frame.code_attr.code.length
-				begin
-					opcode = frame.next_instruction
-					case opcode
-					when 0
-					when 1
-						frame.stack.push nil
-					when 2
-						frame.stack.push -1
-					when 3, 9
-						frame.stack.push 0
-					when 4, 10
-						frame.stack.push 1
-					when 5
-						frame.stack.push 2
-					when 6
-						frame.stack.push 3
-					when 7
-						frame.stack.push 4
-					when 8
-						frame.stack.push 5
-					when 16
-						frame.stack.push BinaryParser.to_8bit_signed(frame.next_instruction)
-					when 18
-						index = frame.next_instruction
-						attrib = frame.jvmclass.class_file.constant_pool[index]
-						if attrib.is_a? ConstantPoolConstantValueInfo
-							frame.stack.push attrib.value
-						elsif attrib.is_a? ConstantPoolConstantIndex1Info
-							value = frame.jvmclass.class_file.constant_pool[attrib.index1].value
-							if attrib.is_string?
-								reference = new_java_string(value)
-								frame.stack.push reference
-								method = JVMMethod.new('intern', '()Ljava/lang/String;')
-								run_and_return Frame.new(resolve_method(load_class(reference.class_type), method),
-									method,
-									[reference])
-							else
-								frame.stack.push new_java_class(value)
-							end
-						else
-							fail 'Illegal attribute type'
-						end
-					when 20
-						index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						frame.stack.push frame.jvmclass.class_file.constant_pool[index].value
-					when 21, 25
-						frame.stack.push frame.locals[frame.next_instruction]
-					when 26, 42
-						frame.stack.push frame.locals[0]
-					when 27, 43
-						frame.stack.push frame.locals[1]
-					when 28, 44
-						frame.stack.push frame.locals[2]
-					when 29, 45
-						frame.stack.push frame.locals[3]
-					when 50
-						index = frame.stack.pop
-						arrayref = frame.stack.pop
-						frame.stack.push arrayref.values[index]
-					when 51
-						index = frame.stack.pop
-						arrayref = frame.stack.pop
-						frame.stack.push BinaryParser.to_8bit_signed(arrayref.values[index])
-					when 54, 56, 58
-						frame.locals[frame.next_instruction] = frame.stack.pop
-					when 55, 57
-						index = frame.next_instruction
-						frame.locals[index], frame.locals[index + 1] =
-							BinaryParser.to_8bit(frame.stack.pop)
-					when 59, 75
-						frame.locals[0] = frame.stack.pop
-					when 60, 76
-						frame.locals[1] = frame.stack.pop
-					when 61, 77
-						frame.locals[2] = frame.stack.pop
-					when 62, 78
-						frame.locals[3] = frame.stack.pop
-					when 79, 83, 84
-						value = frame.stack.pop
-						index = frame.stack.pop
-						arrayref = frame.stack.pop
-						arrayref.values[index] = value
-					when 87
-						frame.stack.pop
-					when 89
-						frame.stack.push frame.stack.last
-					when 96
-						frame.stack.push(frame.stack.pop + frame.stack.pop)
-					when 100
-						v2 = frame.stack.pop
-						v1 = frame.stack.pop
-						frame.stack.push v1 - v2
-					when 104
-						frame.stack.push(frame.stack.pop * frame.stack.pop)
-					when 108
-						v2 = frame.stack.pop
-						v1 = frame.stack.pop
-						frame.stack.push v1 / v2
-					when 120
-						v2 = frame.stack.pop & 31
-						v1 = frame.stack.pop
-						frame.stack.push(v1 << v2)
-					when 122
-						v2 = frame.stack.pop & 31
-						v1 = frame.stack.pop
-						frame.stack.push(v1 >> v2)
-					when 126
-						frame.stack.push(frame.stack.pop & frame.stack.pop)
-					when 128
-						frame.stack.push(frame.stack.pop | frame.stack.pop)
-					when 130
-						frame.stack.push(frame.stack.pop ^ frame.stack.pop)
-					when 132
-						frame.locals[frame.next_instruction] += BinaryParser.to_8bit_signed(frame.next_instruction)
-					when 153
-						frame.goto_if { frame.stack.pop.zero? }
-					when 154
-						frame.goto_if { frame.stack.pop.nonzero? }
-					when 155
-						frame.goto_if { frame.stack.pop < 0 }
-					when 156
-						frame.goto_if { frame.stack.pop >= 0 }
-					when 157
-						frame.goto_if { frame.stack.pop > 0 }
-					when 158
-						frame.goto_if { frame.stack.pop <= 0 }
-					when 159
-						frame.goto_if { frame.stack.pop == frame.stack.pop }
-					when 160
-						frame.goto_if { frame.stack.pop != frame.stack.pop }
-					when 161
-						frame.goto_if { frame.stack.pop > frame.stack.pop }
-					when 162
-						frame.goto_if { frame.stack.pop <= frame.stack.pop }
-					when 163
-						frame.goto_if { frame.stack.pop < frame.stack.pop }
-					when 164
-						frame.goto_if { frame.stack.pop >= frame.stack.pop }
-					when 165
-						frame.goto_if { frame.stack.pop == frame.stack.pop }
-					when 166
-						frame.goto_if { frame.stack.pop != frame.stack.pop }
-					when 167
-						frame.goto_if { true }
-					when 172, 176
-						return frame.stack.pop
-					when 177
-						break
-					when 178
-						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
-						jvmclass = load_class(details.class_type)
-						field = JVMField.new(details.field_name, details.field_type)
-						frame.stack.push jvmclass.reference.get_field(resolve_field(jvmclass, field), field)
-					when 179
-						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
-						jvmclass = load_class(details.class_type)
-						field = JVMField.new(details.field_name, details.field_type)
-						jvmclass.reference.set_field(resolve_field(jvmclass, field), field, frame.stack.pop)
-					when 180
-						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
-						reference = frame.stack.pop
-						field = JVMField.new(details.field_name, details.field_type)
-						frame.stack.push reference.get_field(resolve_field(load_class(details.class_type), field), field)
-					when 181
-						field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
-						value = frame.stack.pop
-						reference = frame.stack.pop
-						field = JVMField.new(details.field_name, details.field_type)
-						reference.set_field(resolve_field(load_class(details.class_type), field), field, value)
-					when 182, 183, 184, 185
-						method_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						details = frame.jvmclass.class_file.class_and_name_and_type(method_index)
-						method = JVMMethod.new(details.field_name, details.field_type)
-						params = []
-						args_count = method.args.size
-						args_count.times { params.push frame.stack.pop }
-						if opcode == 184
-							jvmclass = resolve_method(load_class(details.class_type), method)
-						else
-							reference = frame.stack.pop
-							params.push reference
-							if opcode == 183
-								jvmclass = resolve_special_method(load_class(reference.class_type),
-									load_class(details.class_type), method)
-							else
-								jvmclass = resolve_method(load_class(reference.class_type), method)
-							end
-						end
-						if opcode == 185
-							frame.next_instruction
-							frame.next_instruction
-						end
-						run Frame.new(jvmclass, method, params.reverse)
-					when 187
-						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						frame.stack.push new_java_object(frame.jvmclass.class_file.get_attrib_name(class_index))
-					when 188
-						count = frame.stack.pop
-						array_code = frame.next_instruction
-						array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
-						frame.stack.push JavaInstanceArray.new(array_type[array_code], [count])
-					when 189
-						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						array_type = "[#{frame.jvmclass.class_file.get_attrib_name(class_index)}"
-						count = frame.stack.pop
-						frame.stack.push JavaInstanceArray.new(array_type, [count])
-					when 190
-						array_reference = frame.stack.pop
-						frame.stack.push array_reference.values.size
-					when 191
-						raise JVMError, frame.stack.pop
-					when 192
-						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						reference = frame.stack.last
-						if reference and not is_type_equal_or_superclass?(reference.class_type, frame.jvmclass.class_file.get_attrib_name(class_index))
-							exception = new_java_object 'java/lang/ClassCastException'
-							run_and_return Frame.new(load_class(exception.class_type), JVMMethod.new('<init>', '()V'))
-							raise JVMError, exception
-						end
-					when 193
-						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						reference = frame.stack.pop
-						if reference
-							frame.stack.push(is_type_equal_or_superclass?(reference.class_type,
-								frame.jvmclass.class_file.get_attrib_name(class_index)) ? 1 : 0)
-						else
+		begin
+			@frames.push frame
+			$logger.debug('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}" }
+			if frame.code_attr
+				while frame.pc < frame.code_attr.code.length
+					begin
+						opcode = frame.next_instruction
+						# p opcode
+						# p 'LOCALS'
+						# p frame.locals
+						# p 'STACK'
+						# p frame.stack
+						# p '******'
+						case opcode
+						when 0
+						when 1
+							frame.stack.push nil
+						when 2
+							frame.stack.push -1
+						when 3, 9
 							frame.stack.push 0
+						when 4, 10
+							frame.stack.push 1
+						when 5
+							frame.stack.push 2
+						when 6
+							frame.stack.push 3
+						when 7
+							frame.stack.push 4
+						when 8
+							frame.stack.push 5
+						when 16
+							frame.stack.push BinaryParser.to_8bit_signed(frame.next_instruction)
+						when 18
+							index = frame.next_instruction
+							attrib = frame.jvmclass.class_file.constant_pool[index]
+							if attrib.is_a? ConstantPoolConstantValueInfo
+								frame.stack.push attrib.value
+							elsif attrib.is_a? ConstantPoolConstantIndex1Info
+								value = frame.jvmclass.class_file.constant_pool[attrib.index1].value
+								if attrib.is_string?
+									reference = new_java_string(value)
+									method = JVMMethod.new('intern', '()Ljava/lang/String;')
+									frame.stack.push run_and_return(Frame.new(resolve_method(load_class(reference.class_type), method),
+										method,
+										[reference]))
+								else
+									frame.stack.push new_java_class(value)
+								end
+							else
+								fail 'Illegal attribute type'
+							end
+						when 20
+							index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							frame.stack.push frame.jvmclass.class_file.constant_pool[index].value
+						when 21, 25
+							frame.stack.push frame.locals[frame.next_instruction]
+						when 26, 42
+							frame.stack.push frame.locals[0]
+						when 27, 43
+							frame.stack.push frame.locals[1]
+						when 28, 44
+							frame.stack.push frame.locals[2]
+						when 29, 45
+							frame.stack.push frame.locals[3]
+						when 50
+							index = frame.stack.pop
+							arrayref = frame.stack.pop
+							frame.stack.push arrayref.values[index]
+						when 51
+							index = frame.stack.pop
+							arrayref = frame.stack.pop
+							frame.stack.push BinaryParser.to_8bit_signed(arrayref.values[index])
+						when 54, 56, 58
+							frame.locals[frame.next_instruction] = frame.stack.pop
+						when 55, 57
+							index = frame.next_instruction
+							frame.locals[index], frame.locals[index + 1] =
+								BinaryParser.to_8bit(frame.stack.pop)
+						when 59, 75
+							frame.locals[0] = frame.stack.pop
+						when 60, 76
+							frame.locals[1] = frame.stack.pop
+						when 61, 77
+							frame.locals[2] = frame.stack.pop
+						when 62, 78
+							frame.locals[3] = frame.stack.pop
+						when 79, 83, 84
+							value = frame.stack.pop
+							index = frame.stack.pop
+							arrayref = frame.stack.pop
+							arrayref.values[index] = value
+						when 87
+							frame.stack.pop
+						when 89
+							frame.stack.push frame.stack.last
+						when 96
+							frame.stack.push(frame.stack.pop + frame.stack.pop)
+						when 100
+							v2 = frame.stack.pop
+							v1 = frame.stack.pop
+							frame.stack.push v1 - v2
+						when 104
+							frame.stack.push(frame.stack.pop * frame.stack.pop)
+						when 108
+							v2 = frame.stack.pop
+							v1 = frame.stack.pop
+							frame.stack.push v1 / v2
+						when 120
+							v2 = frame.stack.pop & 31
+							v1 = frame.stack.pop
+							frame.stack.push(v1 << v2)
+						when 122
+							v2 = frame.stack.pop & 31
+							v1 = frame.stack.pop
+							frame.stack.push(v1 >> v2)
+						when 126
+							frame.stack.push(frame.stack.pop & frame.stack.pop)
+						when 128
+							frame.stack.push(frame.stack.pop | frame.stack.pop)
+						when 130
+							frame.stack.push(frame.stack.pop ^ frame.stack.pop)
+						when 132
+							frame.locals[frame.next_instruction] += BinaryParser.to_8bit_signed(frame.next_instruction)
+						when 153
+							frame.goto_if { frame.stack.pop.zero? }
+						when 154
+							frame.goto_if { frame.stack.pop.nonzero? }
+						when 155
+							frame.goto_if { frame.stack.pop < 0 }
+						when 156
+							frame.goto_if { frame.stack.pop >= 0 }
+						when 157
+							frame.goto_if { frame.stack.pop > 0 }
+						when 158
+							frame.goto_if { frame.stack.pop <= 0 }
+						when 159
+							frame.goto_if { frame.stack.pop == frame.stack.pop }
+						when 160
+							frame.goto_if { frame.stack.pop != frame.stack.pop }
+						when 161
+							frame.goto_if { frame.stack.pop > frame.stack.pop }
+						when 162
+							frame.goto_if { frame.stack.pop <= frame.stack.pop }
+						when 163
+							frame.goto_if { frame.stack.pop < frame.stack.pop }
+						when 164
+							frame.goto_if { frame.stack.pop >= frame.stack.pop }
+						when 165
+							frame.goto_if { frame.stack.pop == frame.stack.pop }
+						when 166
+							frame.goto_if { frame.stack.pop != frame.stack.pop }
+						when 167
+							frame.goto_if { true }
+						when 172, 176
+							return frame.stack.pop
+						when 177
+							break
+						when 178
+							field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
+							jvmclass = load_class(details.class_type)
+							field = JVMField.new(details.field_name, details.field_type)
+							frame.stack.push jvmclass.reference.get_field(resolve_field(jvmclass, field), field)
+						when 179
+							field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
+							jvmclass = load_class(details.class_type)
+							field = JVMField.new(details.field_name, details.field_type)
+							jvmclass.reference.set_field(resolve_field(jvmclass, field), field, frame.stack.pop)
+						when 180
+							field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
+							reference = frame.stack.pop
+							field = JVMField.new(details.field_name, details.field_type)
+							frame.stack.push reference.get_field(resolve_field(load_class(details.class_type), field), field)
+						when 181
+							field_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							details = frame.jvmclass.class_file.class_and_name_and_type(field_index)
+							value = frame.stack.pop
+							reference = frame.stack.pop
+							field = JVMField.new(details.field_name, details.field_type)
+							reference.set_field(resolve_field(load_class(details.class_type), field), field, value)
+						when 182, 183, 184, 185
+							method_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							details = frame.jvmclass.class_file.class_and_name_and_type(method_index)
+							method = JVMMethod.new(details.field_name, details.field_type)
+							params = []
+							args_count = method.args.size
+							args_count.times { params.push frame.stack.pop }
+							if opcode == 184
+								jvmclass = resolve_method(load_class(details.class_type), method)
+							else
+								reference = frame.stack.pop
+								params.push reference
+								if opcode == 183
+									jvmclass = resolve_special_method(load_class(reference.class_type),
+										load_class(details.class_type), method)
+								else
+									jvmclass = resolve_method(load_class(reference.class_type), method)
+								end
+							end
+							if opcode == 185
+								frame.next_instruction
+								frame.next_instruction
+							end
+							run Frame.new(jvmclass, method, params.reverse)
+						when 187
+							class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							frame.stack.push new_java_object(frame.jvmclass.class_file.get_attrib_name(class_index))
+						when 188
+							count = frame.stack.pop
+							array_code = frame.next_instruction
+							array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
+							frame.stack.push JavaInstanceArray.new(array_type[array_code], [count])
+						when 189
+							class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							array_type = "[#{frame.jvmclass.class_file.get_attrib_name(class_index)}"
+							count = frame.stack.pop
+							frame.stack.push JavaInstanceArray.new(array_type, [count])
+						when 190
+							array_reference = frame.stack.pop
+							frame.stack.push array_reference.values.size
+						when 191
+							raise JVMError, frame.stack.pop
+						when 192
+							class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							reference = frame.stack.last
+							if reference and not is_type_equal_or_superclass?(reference.class_type, frame.jvmclass.class_file.get_attrib_name(class_index))
+								exception = new_java_object 'java/lang/ClassCastException'
+								run_and_return Frame.new(load_class(exception.class_type), JVMMethod.new('<init>', '()V'))
+								raise JVMError, exception
+							end
+						when 193
+							class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							reference = frame.stack.pop
+							if reference
+								frame.stack.push(is_type_equal_or_superclass?(reference.class_type,
+									frame.jvmclass.class_file.get_attrib_name(class_index)) ? 1 : 0)
+							else
+								frame.stack.push 0
+							end
+						when 197
+							class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
+								frame.next_instruction)
+							dimensions = frame.next_instruction
+							counts = []
+							dimensions.times { counts << frame.stack.pop }
+							frame.stack.push JavaInstanceArray.new(frame.jvmclass.class_file.get_attrib_name(class_index),
+								counts.reverse)
+						when 198
+							frame.goto_if { frame.stack.pop.nil? }
+						when 199
+							frame.goto_if { frame.stack.pop }
+						else
+							fail "Unsupported opcode #{opcode}"
 						end
-					when 197
-						class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
-							frame.next_instruction)
-						dimensions = frame.next_instruction
-						counts = []
-						dimensions.times { counts << frame.stack.pop }
-						frame.stack.push JavaInstanceArray.new(frame.jvmclass.class_file.get_attrib_name(class_index),
-							counts.reverse)
-					when 198
-						frame.goto_if { frame.stack.pop.nil? }
-					when 199
-						frame.goto_if { frame.stack.pop }
-					else
-						fail "Unsupported opcode #{opcode}"
-					end
-				rescue JVMError => e
-					handle_exception frame, e.exception
-				rescue ZeroDivisionError
-					handle_exception frame, new_java_object('java/lang/ArithmeticException')
-				rescue NoMethodError => e
-					if e.receiver
-						raise e
-					else
-						handle_exception frame, new_java_object('java/lang/NullPointerException')
+					rescue JVMError => e
+						handle_exception frame, e.exception
+					rescue ZeroDivisionError
+						handle_exception frame, new_java_object('java/lang/ArithmeticException')
+					rescue NoMethodError => e
+						if e.receiver
+							raise e
+						else
+							handle_exception frame, new_java_object('java/lang/NullPointerException')
+						end
 					end
 				end
+			else
+				send frame.method.native_name(frame.jvmclass), self, frame.locals
 			end
-		else
-			send frame.method.native_name(frame.jvmclass), self, frame.locals
+		ensure
+			@frames.pop
 		end
 	end
 end
