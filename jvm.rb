@@ -108,10 +108,6 @@ class JVMError < StandardError
 		@exception = exception
 		super
 	end
-
-	def to_s
-		@exception.class_type
-	end
 end
 
 class JVMClass

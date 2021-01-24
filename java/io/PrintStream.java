@@ -16,6 +16,10 @@ public class PrintStream extends FilterOutputStream {
 		print(String.valueOf(b));
 	}
 
+	public void print(int i) {
+		print(String.valueOf(i));
+	}
+
 	public void print(String s) {
 		out.write(s.getBytes());
 	}
@@ -26,6 +30,11 @@ public class PrintStream extends FilterOutputStream {
 
 	public void println(boolean b) {
 		print(b);
+		println();
+	}
+
+	public void println(int i) {
+		print(i);
 		println();
 	}
 
