@@ -385,11 +385,14 @@ class JVM
 	def run_and_return frame
 		begin
 			@frames.push frame
-			$logger.debug('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}" }
+			$logger.info('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}" }
 			if frame.code_attr
 				while frame.pc < frame.code_attr.code.length
 					begin
 						opcode = frame.next_instruction
+						$logger.debug('jvm.rb') { "OPCODE #{opcode}, LOCALS #{frame.locals.size}, STACK #{frame.stack.size}" }
+						$logger.debug('jvm.rb') { "LOCALS #{frame.locals}" }
+						$logger.debug('jvm.rb') { "STACK #{frame.stack}" }
 						case opcode
 						when 0
 						when 1
