@@ -394,12 +394,6 @@ class JVM
 				while frame.pc < frame.code_attr.code.length
 					begin
 						opcode = frame.next_instruction
-						# p opcode
-						# p 'LOCALS'
-						# p frame.locals
-						# p 'STACK'
-						# p frame.stack
-						# p '******'
 						case opcode
 						when 0
 						when 1
