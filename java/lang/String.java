@@ -35,8 +35,9 @@ public class String {
 	}
 
 	public static native String valueOf(int i);
-
-	public static native String valueOf(double i);
+	public static native String valueOf(long l);
+	public static native String valueOf(float f);
+	public static native String valueOf(double d);
 
 	public static String valueOf(boolean b) {
 		return b ? "true" : "false";

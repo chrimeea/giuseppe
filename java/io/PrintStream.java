@@ -20,6 +20,14 @@ public class PrintStream extends FilterOutputStream {
 		print(String.valueOf(i));
 	}
 
+	public void print(long l) {
+		print(String.valueOf(l));
+	}
+
+	public void print(float f) {
+		print(String.valueOf(f));
+	}
+
 	public void print(double d) {
 		print(String.valueOf(d));
 	}
@@ -34,6 +42,16 @@ public class PrintStream extends FilterOutputStream {
 
 	public void println(boolean b) {
 		print(b);
+		println();
+	}
+
+	public void println(long l) {
+		print(l);
+		println();
+	}
+
+	public void println(float f) {
+		print(f);
 		println();
 	}
 

@@ -435,13 +435,13 @@ class JVM
 							frame.stack.push frame.jvmclass.class_file.constant_pool[index].value
 						when 21, 25
 							frame.stack.push frame.locals[frame.next_instruction]
-						when 26, 38, 42
+						when 26, 30, 34, 38, 42
 							frame.stack.push frame.locals[0]
-						when 27, 39, 43
+						when 27, 31, 35, 39, 43
 							frame.stack.push frame.locals[1]
-						when 28, 40, 44
+						when 28, 32, 36, 40, 44
 							frame.stack.push frame.locals[2]
-						when 29, 41, 45
+						when 29, 33, 37, 41, 45
 							frame.stack.push frame.locals[3]
 						when 50
 							index = frame.stack.pop
@@ -457,21 +457,21 @@ class JVM
 							index = frame.next_instruction
 							frame.locals[index], frame.locals[index + 1] =
 								BinaryParser.to_8bit(frame.stack.pop)
-						when 59, 75
+						when 59, 67, 75
 							frame.locals[0] = frame.stack.pop
-						when 60, 76
+						when 60, 68, 76
 							frame.locals[1] = frame.stack.pop
-						when 61, 77
+						when 61, 69, 77
 							frame.locals[2] = frame.stack.pop
-						when 62, 78
+						when 62, 70, 78
 							frame.locals[3] = frame.stack.pop
-						when 71
+						when 63, 71
 							frame.locals[0] = frame.locals[1] = frame.stack.pop
-						when 72
+						when 64, 72
 							frame.locals[1] = frame.locals[2] = frame.stack.pop
-						when 73
+						when 65, 73
 							frame.locals[2] = frame.locals[3] = frame.stack.pop
-						when 74
+						when 66, 74
 							frame.locals[3] = frame.locals[4] = frame.stack.pop
 						when 79, 83, 84
 							value = frame.stack.pop
