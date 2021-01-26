@@ -22,7 +22,7 @@ class ClassLoader
 						s = if (v.value >> 31) == 0 then 1 else -1 end
 						e = (v.value >> 23) & 0xff;
 						m = if e == 0 then (v.value & 0x7fffff) << 1 else (v.value & 0x7fffff) | 0x800000 end
-						v.value = s * m * 2 ** (e - 150)
+						v.value = (s * m * 2 ** (e - 150)).to_f
 					end
 				when 5, 6
 					v = ConstantPoolConstantValueInfo.new
@@ -33,7 +33,7 @@ class ClassLoader
 						s = if (v.value >> 63) == 0 then 1 else -1 end
 						e = (v.value >> 52) & 0x7ff
 						m = if e == 0 then (v.value & 0xfffffffffffff) << 1 else (v.value & 0xfffffffffffff) | 0x10000000000000 end
-						v.value = s * m * 2 ** (e - 1075)
+						v.value = (s * m * 2 ** (e - 1075)).to_f
 					end
 				when 7
 					v = ConstantPoolConstantIndex1Info.new
