@@ -18,6 +18,14 @@ public class String {
 		return b;
 	}
 
+	public int length() {
+		return bytes.length;
+	}
+
+	public char charAt(int index) {
+		return (char) bytes[index];
+	}
+
 	public String concat(String str) {
 		byte[] bstr = str.getBytes();
 		byte[] bconcat = new byte[bytes.length + bstr.length];

@@ -20,6 +20,10 @@ public class Class<T> {
 		return true;
 	}
 
+	public boolean isArray() {
+		return name.length() > 1 && name.charAt(0) == '[';
+	}
+
 	public native boolean isInterface();
 
 	public String toString() {
