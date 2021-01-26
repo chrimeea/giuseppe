@@ -17,9 +17,9 @@ class Frame
 			@locals.push(p.pop) if params.size > method.args.size
 			method.args.each do |a|
 				if a == 'J' or a == 'D'
-					q, r = BinaryParser.to_8bit p.pop
-					@locals.push q
-					@locals.push r
+					value = p.pop
+					@locals.push value
+					@locals.push value
 				else
 					@locals.push p.pop
 				end
@@ -385,14 +385,11 @@ class JVM
 	def run_and_return frame
 		begin
 			@frames.push frame
-			$logger.info('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}" }
+			$logger.info('jvm.rb') { "#{@frames.size}, #{frame.jvmclass.class_file.this_class_type}, #{frame.method.method_name}, PARAMS: #{frame.locals}" }
 			if frame.code_attr
 				while frame.pc < frame.code_attr.code.length
 					begin
 						opcode = frame.next_instruction
-						$logger.debug('jvm.rb') { "OPCODE #{opcode}, LOCALS #{frame.locals.size}, STACK #{frame.stack.size}" }
-						$logger.debug('jvm.rb') { "LOCALS #{frame.locals}" }
-						$logger.debug('jvm.rb') { "STACK #{frame.stack}" }
 						case opcode
 						when 0
 						when 1
@@ -438,13 +435,13 @@ class JVM
 							frame.stack.push frame.jvmclass.class_file.constant_pool[index].value
 						when 21, 25
 							frame.stack.push frame.locals[frame.next_instruction]
-						when 26, 42
+						when 26, 38, 42
 							frame.stack.push frame.locals[0]
-						when 27, 43
+						when 27, 39, 43
 							frame.stack.push frame.locals[1]
-						when 28, 44
+						when 28, 40, 44
 							frame.stack.push frame.locals[2]
-						when 29, 45
+						when 29, 41, 45
 							frame.stack.push frame.locals[3]
 						when 50
 							index = frame.stack.pop
@@ -468,6 +465,14 @@ class JVM
 							frame.locals[2] = frame.stack.pop
 						when 62, 78
 							frame.locals[3] = frame.stack.pop
+						when 71
+							frame.locals[0] = frame.locals[1] = frame.stack.pop
+						when 72
+							frame.locals[1] = frame.locals[2] = frame.stack.pop
+						when 73
+							frame.locals[2] = frame.locals[3] = frame.stack.pop
+						when 74
+							frame.locals[3] = frame.locals[4] = frame.stack.pop
 						when 79, 83, 84
 							value = frame.stack.pop
 							index = frame.stack.pop
