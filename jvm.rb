@@ -392,7 +392,7 @@ class JVM
 					begin
 						opcode = frame.next_instruction
 						case opcode
-						when 0
+						when 0, 133, 134, 135, 137, 138, 141
 						when 1
 							frame.stack.push nil
 						when 2
@@ -436,6 +436,9 @@ class JVM
 							frame.stack.push frame.jvmclass.class_file.constant_pool[index].value
 						when 21, 25
 							frame.stack.push frame.locals[frame.next_instruction]
+						when 24, 55, 57
+							index = frame.next_instruction
+							frame.locals[index] = frame.locals[index + 1] = frame.stack.pop
 						when 26, 30, 34, 38, 42
 							frame.stack.push frame.locals[0]
 						when 27, 31, 35, 39, 43
@@ -454,9 +457,6 @@ class JVM
 							frame.stack.push BinaryParser.to_signed(arrayref.values[index], 1)
 						when 54, 56, 58
 							frame.locals[frame.next_instruction] = frame.stack.pop
-						when 55, 57
-							index = frame.next_instruction
-							frame.locals[index] = frame.locals[index + 1] = frame.stack.pop
 						when 59, 67, 75
 							frame.locals[0] = frame.stack.pop
 						when 60, 68, 76
@@ -494,6 +494,10 @@ class JVM
 							v2 = frame.stack.pop
 							v1 = frame.stack.pop
 							frame.stack.push v1 / v2
+						when 110
+							value2 = frame.stack.pop
+							value1 = frame.stack.pop
+							frame.stack.push value1 / value2
 						when 120
 							v2 = frame.stack.pop & 31
 							v1 = frame.stack.pop
