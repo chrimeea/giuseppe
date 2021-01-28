@@ -38,7 +38,7 @@ class Frame
 
 	def goto_if
 		if yield
-			@pc += BinaryParser.to_16bit_signed(@code_attr.code[@pc], @code_attr.code[@pc + 1]) - 1
+			@pc += BinaryParser.to_signed(BinaryParser.to_16bit_unsigned(@code_attr.code[@pc], @code_attr.code[@pc + 1]), 2) - 1
 		else
 			@pc += 2
 		end
@@ -410,7 +410,7 @@ class JVM
 						when 8
 							frame.stack.push 5
 						when 16
-							frame.stack.push BinaryParser.to_8bit_signed(frame.next_instruction)
+							frame.stack.push BinaryParser.to_signed(frame.next_instruction, 1)
 						when 18
 							index = frame.next_instruction
 							attrib = frame.jvmclass.class_file.constant_pool[index]
@@ -451,7 +451,7 @@ class JVM
 						when 51
 							index = frame.stack.pop
 							arrayref = frame.stack.pop
-							frame.stack.push BinaryParser.to_8bit_signed(arrayref.values[index])
+							frame.stack.push BinaryParser.to_signed(arrayref.values[index], 1)
 						when 54, 56, 58
 							frame.locals[frame.next_instruction] = frame.stack.pop
 						when 55, 57
@@ -511,11 +511,13 @@ class JVM
 						when 132
 							index = frame.next_instruction
 							value = frame.next_instruction
-							frame.locals[index] += BinaryParser.to_8bit_signed(value)
+							frame.locals[index] += BinaryParser.to_signed(value, 1)
 						when 145
-							frame.stack.push BinaryParser.to_8bit_signed(BinaryParser.trunc_to_8bit(frame.stack.pop))
+							frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(frame.stack.pop, 1), 1)
 						when 146
-							frame.stack.push BinaryParser.trunc_to_8bit(frame.stack.pop)
+							frame.stack.push BinaryParser.trunc_to(frame.stack.pop, 1)
+						when 147
+							frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(frame.stack.pop, 2), 2)
 						when 153
 							frame.goto_if { frame.stack.pop.zero? }
 						when 154

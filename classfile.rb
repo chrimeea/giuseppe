@@ -41,25 +41,19 @@ class BinaryParser
 		return s
 	end
 
-	def self.to_16bit_signed(byte1, byte2)
-		value_16bit = to_16bit_unsigned(byte1, byte2)
-		sign = value_16bit & 32768
-		value_16bit -= 65536 if sign.nonzero?
-		return value_16bit
-	end
-
 	def self.to_16bit_unsigned(byte1, byte2)
 		(byte1 << 8) | byte2
 	end
 
-	def self.trunc_to_8bit(value)
-		value.modulo 256
+	def self.trunc_to(value, count)
+		value.modulo (2 ** (8 * count))
 	end
 
-	def self.to_8bit_signed(byte_unsigned)
-		sign = byte_unsigned & 128
-		byte_unsigned -= 256 if sign.nonzero?
-		return byte_unsigned
+	def self.to_signed(value, count)
+		n = 2 ** (8 * count)
+		sign = value & (n / 2)
+		value -= n if sign.nonzero?
+		return value
 	end
 end
 
