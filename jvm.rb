@@ -3,7 +3,8 @@ require './native'
 
 class Frame
 
-	attr_reader :jvmclass, :stack, :locals, :code_attr, :exceptions, :pc, :method
+	attr_reader :jvmclass, :stack, :locals, :code_attr, :exceptions, :method
+	attr_accessor :pc
 
 	def initialize jvmclass, method, params
 		@jvmclass = jvmclass
@@ -332,7 +333,7 @@ class JVM
 	def handle_exception frame, exception
 		handler = resolve_exception_handler frame, exception
 		if handler
-			frame.stack = exception
+			frame.stack.push exception
 			frame.pc = handler.handler_pc
 		else
 			raise JVMError, exception
