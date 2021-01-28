@@ -53,7 +53,7 @@ class BinaryParser
 	end
 
 	def self.to_8bit(value_16bit)
-		value_16bit.divmod 256
+		value_16bit.modulo 256
 	end
 
 	def self.to_8bit_signed(byte_unsigned)

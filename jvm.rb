@@ -456,8 +456,7 @@ class JVM
 							frame.locals[frame.next_instruction] = frame.stack.pop
 						when 55, 57
 							index = frame.next_instruction
-							frame.locals[index], frame.locals[index + 1] =
-								BinaryParser.to_8bit(frame.stack.pop)
+							frame.locals[index] = frame.locals[index + 1] = frame.stack.pop
 						when 59, 67, 75
 							frame.locals[0] = frame.stack.pop
 						when 60, 68, 76
@@ -514,11 +513,9 @@ class JVM
 							value = frame.next_instruction
 							frame.locals[index] += BinaryParser.to_8bit_signed(value)
 						when 145
-							q, r = BinaryParser.to_8bit(frame.stack.pop)
-							frame.stack.push BinaryParser.to_8bit_signed(r)
+							frame.stack.push BinaryParser.to_8bit_signed(BinaryParser.to_8bit(frame.stack.pop))
 						when 146
-							q, r = BinaryParser.to_8bit frame.stack.pop
-							frame.stack.push r
+							frame.stack.push BinaryParser.to_8bit(frame.stack.pop)
 						when 153
 							frame.goto_if { frame.stack.pop.zero? }
 						when 154
