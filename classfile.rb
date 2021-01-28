@@ -52,8 +52,8 @@ class BinaryParser
 		(byte1 << 8) | byte2
 	end
 
-	def self.to_8bit(value_16bit)
-		value_16bit.modulo 256
+	def self.trunc_to_8bit(value)
+		value.modulo 256
 	end
 
 	def self.to_8bit_signed(byte_unsigned)

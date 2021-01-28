@@ -513,9 +513,9 @@ class JVM
 							value = frame.next_instruction
 							frame.locals[index] += BinaryParser.to_8bit_signed(value)
 						when 145
-							frame.stack.push BinaryParser.to_8bit_signed(BinaryParser.to_8bit(frame.stack.pop))
+							frame.stack.push BinaryParser.to_8bit_signed(BinaryParser.trunc_to_8bit(frame.stack.pop))
 						when 146
-							frame.stack.push BinaryParser.to_8bit(frame.stack.pop)
+							frame.stack.push BinaryParser.trunc_to_8bit(frame.stack.pop)
 						when 153
 							frame.goto_if { frame.stack.pop.zero? }
 						when 154
