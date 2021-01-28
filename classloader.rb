@@ -23,6 +23,8 @@ class ClassLoader
 						e = (v.value >> 23) & 0xff;
 						m = if e == 0 then (v.value & 0x7fffff) << 1 else (v.value & 0x7fffff) | 0x800000 end
 						v.value = (s * m * 2 ** (e - 150)).to_f
+					else
+						v.value = BinaryParser.to_signed(v.value, 4)
 					end
 				when 5, 6
 					v = ConstantPoolConstantValueInfo.new
@@ -34,6 +36,8 @@ class ClassLoader
 						e = (v.value >> 52) & 0x7ff
 						m = if e == 0 then (v.value & 0xfffffffffffff) << 1 else (v.value & 0xfffffffffffff) | 0x10000000000000 end
 						v.value = (s * m * 2 ** (e - 1075)).to_f
+					else
+						v.value = BinaryParser.to_signed(v.value, 8)
 					end
 				when 7
 					v = ConstantPoolConstantIndex1Info.new
