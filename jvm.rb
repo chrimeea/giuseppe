@@ -509,7 +509,12 @@ class JVM
 						when 130
 							frame.stack.push(frame.stack.pop ^ frame.stack.pop)
 						when 132
-							frame.locals[frame.next_instruction] += BinaryParser.to_8bit_signed(frame.next_instruction)
+							index = frame.next_instruction
+							value = frame.next_instruction
+							frame.locals[index] += BinaryParser.to_8bit_signed(value)
+						when 145
+							q, r = BinaryParser.to_8bit(frame.stack.pop)
+							frame.stack.push BinaryParser.to_8bit_signed(r)
 						when 146
 							q, r = BinaryParser.to_8bit frame.stack.pop
 							frame.stack.push r

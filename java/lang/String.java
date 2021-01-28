@@ -39,6 +39,10 @@ public class String {
 	public static native String valueOf(float f);
 	public static native String valueOf(double d);
 
+	public static String valueOf(char c) {
+		return new String(new byte[] { (byte) c });
+	}
+
 	public static String valueOf(boolean b) {
 		return b ? "true" : "false";
 	}
