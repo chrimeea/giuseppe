@@ -299,6 +299,10 @@ class JVM
 		end
 	end
 
+	def check_array_index reference, index
+		raise JVMError, new_java_object_with_constructor('java/lang/ArrayIndexOutOfBoundsException') if index < 0 or index >= reference.values.size	
+	end
+
 	def to_native_string reference
 		method = JVMMethod.new('getBytes', '()[B')
 		arrayref = run_and_return Frame.new(resolve_method(load_class(reference.class_type), method),
@@ -321,6 +325,12 @@ class JVM
 		run_and_return Frame.new(load_class('java/lang/Class'),
 			JVMMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
 			[new_java_string(value)])
+	end
+
+	def new_java_object_with_constructor class_type, method = JVMMethod.new('<init>', '()V'), params = []
+		reference = new_java_object class_type
+		run_and_return Frame.new(load_class(reference.class_type), method, [reference] + params)
+		return reference
 	end
 
 	def new_java_object class_type
@@ -447,14 +457,11 @@ class JVM
 							frame.stack.push frame.locals[2]
 						when 29, 33, 37, 41, 45
 							frame.stack.push frame.locals[3]
-						when 50
+						when 46, 50, 51
 							index = frame.stack.pop
 							arrayref = frame.stack.pop
+							check_array_index arrayref, index
 							frame.stack.push arrayref.values[index]
-						when 51
-							index = frame.stack.pop
-							arrayref = frame.stack.pop
-							frame.stack.push BinaryParser.to_signed(arrayref.values[index], 1)
 						when 54, 56, 58
 							frame.locals[frame.next_instruction] = frame.stack.pop
 						when 59, 67, 75
@@ -477,6 +484,7 @@ class JVM
 							value = frame.stack.pop
 							index = frame.stack.pop
 							arrayref = frame.stack.pop
+							check_array_index arrayref, index
 							arrayref.values[index] = value
 						when 87
 							frame.stack.pop
@@ -635,9 +643,7 @@ class JVM
 								frame.next_instruction)
 							reference = frame.stack.last
 							if reference and not is_type_equal_or_superclass?(reference.class_type, frame.jvmclass.class_file.get_attrib_name(class_index))
-								exception = new_java_object 'java/lang/ClassCastException'
-								run_and_return Frame.new(load_class(exception.class_type), JVMMethod.new('<init>', '()V'))
-								raise JVMError, exception
+								raise JVMError, new_java_object_with_constructor('java/lang/ClassCastException')
 							end
 						when 193
 							class_index = BinaryParser.to_16bit_unsigned(frame.next_instruction,
@@ -667,12 +673,12 @@ class JVM
 					rescue JVMError => e
 						handle_exception frame, e.exception
 					rescue ZeroDivisionError
-						handle_exception frame, new_java_object('java/lang/ArithmeticException')
+						handle_exception frame, new_java_object_with_constructor('java/lang/ArithmeticException')
 					rescue NoMethodError => e
 						if e.receiver
 							raise e
 						else
-							handle_exception frame, new_java_object('java/lang/NullPointerException')
+							handle_exception frame, new_java_object_with_constructor('java/lang/NullPointerException')
 						end
 					end
 				end
