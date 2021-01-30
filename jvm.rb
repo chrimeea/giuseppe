@@ -303,7 +303,7 @@ class JVM
 		raise JVMError, new_java_object_with_constructor('java/lang/ArrayIndexOutOfBoundsException') if index < 0 or index >= reference.values.size	
 	end
 
-	def to_native_string reference
+	def java_to_native_string reference
 		method = JVMMethod.new('getBytes', '()[B')
 		arrayref = run_and_return Frame.new(resolve_method(load_class(reference.class_type), method),
 			method,
