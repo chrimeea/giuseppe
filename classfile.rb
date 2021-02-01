@@ -57,7 +57,6 @@ class BinaryParser
 end
 
 class ClassField
-
 	attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
 
 	def code
@@ -67,21 +66,17 @@ class ClassField
 end
 
 class ClassAttribute
-
 	attr_accessor :attribute_name_index, :info
 end
 
 class ClassAttributeConstantValue < ClassAttribute
-
 	attr_accessor :constantvalue_index
 end
 
 class ClassAttributeCode < ClassAttribute
-
 	attr_accessor :max_stack, :max_locals, :code, :exception_table, :attributes
 
 	class Table
-
 		attr_accessor :start_pc, :end_pc, :handler_pc, :catch_type
 	end
 
@@ -97,16 +92,13 @@ class ClassAttributeCode < ClassAttribute
 end
 
 class ClassAttributeExceptions < ClassAttribute
-
 	attr_accessor :exception_index_table
 end
 
 class ClassAttributeInnerClasses < ClassAttribute
-
 	attr_accessor :classes
 
 	class Table
-
 		attr_accessor :inner_class_info_index, :outer_class_info_index, :inner_name_index, :inner_class_access_flags
 	end
 end
@@ -115,26 +107,21 @@ class ClassAttributeSyntetic < ClassAttribute
 end
 
 class ClassAttributeSourceFile < ClassAttribute
-
 	attr_accessor :sourcefile_index
 end
 
 class ClassAttributeLineNumber < ClassAttribute
-
 	attr_accessor :line_number_table
 
 	class Table
-
 		attr_accessor :start_pc, :line_number
 	end
 end
 
 class ClassAttributeLocalVariableTable < ClassAttribute
-
 	attr_accessor :local_variable_table
 
 	class Table
-
 		attr_accessor :start_pc, :length, :name_index, :descriptor_index, :index
 	end
 end
@@ -143,12 +130,10 @@ class ClassAttributeDeprecated < ClassAttribute
 end
 
 class ConstantPoolConstant
-
 	attr_accessor :tag
 end
 
 class ConstantPoolConstantIndex1Info < ConstantPoolConstant
-
 	attr_accessor :index1
 
 	def string?
@@ -161,17 +146,14 @@ class ConstantPoolConstantIndex1Info < ConstantPoolConstant
 end
 
 class ConstantPoolConstantIndex2Info < ConstantPoolConstantIndex1Info
-
 	attr_accessor :index2
 end
 
 class ConstantPoolConstantValueInfo < ConstantPoolConstant
-
 	attr_accessor :value
 end
 
 class AccessFlags
-
 	def initialize access_flags
 		@access_flags = access_flags
 	end
@@ -232,7 +214,6 @@ class AccessFlags
 end
 
 class ClassFile
-
 	attr_accessor	:constant_pool, :interfaces, :attributes,
 					:fields, :methods, :magic, :minor_version, :major_version,
 					:this_class, :super_class, :access_flags
@@ -286,5 +267,4 @@ class ClassFile
 		field_type = @constant_pool[attrib.index2].value
 		Struct.new(:class_type, :field_name, :field_type).new(class_type, field_name, field_type)
 	end
-
 end

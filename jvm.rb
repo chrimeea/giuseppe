@@ -51,11 +51,9 @@ class Frame
 		@pc += 1
 		@code_attr.code[@pc - 1]
 	end
-
 end
 
 class JavaInstance
-
 	attr_reader :class_type
 
 	def initialize class_type = nil
@@ -81,7 +79,6 @@ class JavaInstance
 end
 
 class JavaInstanceArray < JavaInstance
-
 	attr_reader :values
 
 	def initialize class_type, counts
@@ -105,7 +102,6 @@ class JavaInstanceArray < JavaInstance
 end
 
 class JVMError < StandardError
-
 	attr_reader :exception
 
 	def initialize exception
@@ -115,7 +111,6 @@ class JVMError < StandardError
 end
 
 class JVMClass
-
 	attr_reader :class_file, :reference, :resolved
 
 	def initialize class_file
@@ -140,7 +135,6 @@ class JVMClass
 end
 
 class JVMField
-
 	attr_reader :field_name, :field_type
 
 	def initialize field_name, field_type
@@ -159,7 +153,6 @@ class JVMField
 end
 
 class JVMMethod
-
 	attr_reader :method_name, :method_type, :args, :attrib, :retval
 
 	def initialize method_name, method_type
@@ -213,7 +206,6 @@ class JVMMethod
 end
 
 class JVM
-
 	attr_reader :frames
 
 	def initialize
