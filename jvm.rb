@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 require './classloader'
 require './native'
 
 class Frame
-
 	attr_reader :jvmclass, :stack, :locals, :code_attr, :exceptions, :method
 	attr_accessor :pc
 

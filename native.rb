@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 def Java_lang_jni_System_1_write _, params
 	print params[1].values.pack('c*')
 end

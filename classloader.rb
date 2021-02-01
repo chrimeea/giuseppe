@@ -1,7 +1,8 @@
+# frozen_string_literal: true
+
 require './classfile'
 
 class ClassLoader
-
 	def load_constant_pool
 		constant_pool_count = @parser.load_u2 - 1
 		tag = nil

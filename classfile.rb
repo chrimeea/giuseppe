@@ -1,5 +1,4 @@
 class BinaryParser
-
 	def initialize contents
 		@i = 0
 		@contents = contents
