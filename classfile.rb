@@ -8,37 +8,37 @@ class BinaryParser
 	def load_u1
 		u1 = @contents.byteslice(@i, 1).unpack1 'C'
 		@i += 1
-		return u1
+		u1
 	end
 
 	def load_u1_array length
 		a = @contents.byteslice(@i, length).unpack 'C*'
 		@i += length
-		return a
+		a
 	end
 
 	def load_u2
 		u2 = @contents.byteslice(@i, 2).unpack1 'S>'
 		@i += 2
-		return u2
+		u2
 	end
 
 	def load_u2_array length
 		a = @contents.byteslice(@i, 2 * length).unpack 'S>*'
 		@i += 2 * length
-		return a
+		a
 	end
 
 	def load_u4
 		u4 = @contents.byteslice(@i, 4).unpack1 'L>'
 		@i += 4
-		return u4
+		u4
 	end
 
 	def load_string length
 		s = @contents.byteslice(@i, length).unpack1 'a*'
 		@i += length
-		return s
+		s
 	end
 
 	def self.to_16bit_unsigned(byte1, byte2)
@@ -46,14 +46,14 @@ class BinaryParser
 	end
 
 	def self.trunc_to(value, count)
-		value.modulo (2 ** (8 * count))
+		value.modulo 2**(8 * count)
 	end
 
 	def self.to_signed(value, count)
-		n = 2 ** (8 * count)
+		n = 2**(8 * count)
 		sign = value & (n / 2)
 		value -= n if sign.nonzero?
-		return value
+		value
 	end
 end
 
@@ -61,9 +61,9 @@ class ClassField
 
 	attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
 
-	def get_code
+	def code
 		i = attributes.index { |a| a.is_a? ClassAttributeCode }
-		if i then attributes[i] else nil end
+		attributes[i] if i
 	end
 end
 
@@ -87,13 +87,13 @@ class ClassAttributeCode < ClassAttribute
 	end
 
 	def line_number_for_pc(pc)
-		a = @attributes.find { |a| a.is_a? ClassAttributeLineNumber }
+		a = @attributes.find { |attrib| attrib.is_a? ClassAttributeLineNumber }
 		l = 0
 		a.line_number_table.each do |t|
 			break if t.start_pc > pc
 			l = t.line_number
 		end
-		return l;
+		l
 	end
 end
 
@@ -152,11 +152,11 @@ class ConstantPoolConstantIndex1Info < ConstantPoolConstant
 
 	attr_accessor :index1
 
-	def is_string?
+	def string?
 		@tag == 8
 	end
 
-	def is_class?
+	def class?
 		@tag == 7
 	end
 end
@@ -177,51 +177,51 @@ class AccessFlags
 		@access_flags = access_flags
 	end
 
-	def is_public?
+	def public?
 		(@access_flags & 0x0001).nonzero?
 	end
 
-	def is_private?
+	def private?
 		(@access_flags & 0x0002).nonzero?
 	end
 
-	def is_protected?
+	def protected?
 		(@access_flags & 0x0004).nonzero?
 	end
 
-	def is_static?
+	def static?
 		(@access_flags & 0x0008).nonzero?
 	end
 
-	def is_final?
+	def final?
 		(@access_flags & 0x0010).nonzero?
 	end
 
-	def is_synchronized?
+	def synchronized?
 		(@access_flags & 0x0020).nonzero?
 	end
 
-	def is_volatile?
+	def volatile?
 		(@access_flags & 0x0040).nonzero?
 	end
 
-	def is_transient?
+	def transient?
 		(@access_flags & 0x0080).nonzero?
 	end
 
-	def is_native?
+	def native?
 		(@access_flags & 0x0100).nonzero?
 	end
 
-	def is_interface?
+	def interface?
 		(@access_flags & 0x0200).nonzero?
 	end
 
-	def is_abstract?
+	def abstract?
 		(@access_flags & 0x0400).nonzero?
 	end
 
-	def is_strict?
+	def strict?
 		(@access_flags & 0x0800).nonzero?
 	end
 
@@ -229,14 +229,14 @@ class AccessFlags
 		@access_flags.to_s(2)
 	end
 
-	alias :is_super? :is_synchronized?
+	alias super? synchronized?
 end
 
 class ClassFile
 
-	attr_accessor :constant_pool, :interfaces, :attributes,
-		:fields, :methods, :magic, :minor_version, :major_version,
-		:this_class, :super_class, :access_flags
+	attr_accessor	:constant_pool, :interfaces, :attributes,
+					:fields, :methods, :magic, :minor_version, :major_version,
+					:this_class, :super_class, :access_flags
 
 	def initialize
 		@constant_pool = [nil]
@@ -261,7 +261,7 @@ class ClassFile
 
 	def get_method method_name, method_type
 		@methods.each do |m|
-			if @constant_pool[m.name_index].value == method_name and
+			if	@constant_pool[m.name_index].value == method_name &&
 				@constant_pool[m.descriptor_index].value == method_type
 				return m
 			end
@@ -271,7 +271,7 @@ class ClassFile
 
 	def get_field field_name, field_type
 		@fields.each do |f|
-			if @constant_pool[f.name_index].value == field_name and
+			if	@constant_pool[f.name_index].value == field_name &&
 				@constant_pool[f.descriptor_index].value == field_type
 				return f
 			end

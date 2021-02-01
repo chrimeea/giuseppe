@@ -1,0 +1,18 @@
+Layout/IndentationStyle:
+  EnforcedStyle: tabs
+Layout/IndentationWidth:
+  Enabled: false
+Style/MethodDefParentheses:
+  Enabled: false
+Style/OneLineConditional:
+  Enabled: false
+Style/SignalException:
+  EnforcedStyle: semantic
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
+Naming/MethodParameterName:
+  MinNameLength: 2
+Naming/MethodName:
+  IgnoredPatterns: ['\AJava_']
+Style/GlobalVars:
+  AllowedVariables: ['$logger']

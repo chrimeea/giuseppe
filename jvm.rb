@@ -9,7 +9,7 @@ class Frame
 	def initialize jvmclass, method, params
 		@jvmclass = jvmclass
 		@code_attr = jvmclass.class_file.get_method(method.method_name,
-			method.method_type).get_code
+			method.method_type).code
 		if @code_attr
 			@stack = []
 			@exceptions = code_attr.exception_table
@@ -32,16 +32,18 @@ class Frame
 		@pc = 0
 	end
 
-	def is_native?
+	def native?
 		@code_attr.code.nil?
 	end
 
 	def goto_if
-		if yield
-			@pc += BinaryParser.to_signed(BinaryParser.to_16bit_unsigned(@code_attr.code[@pc], @code_attr.code[@pc + 1]), 2) - 1
-		else
-			@pc += 2
-		end
+		@pc +=	if yield
+					BinaryParser.to_signed(
+						BinaryParser.to_16bit_unsigned(
+							@code_attr.code[@pc], @code_attr.code[@pc + 1]), 2) - 1
+				else
+					2
+				end
 	end
 
 	def next_instruction
@@ -72,7 +74,7 @@ class JavaInstance
 		@fields[field_id(jvmclass, field)]
 	end
 
-	def is_class_reference?
+	def class_reference?
 		@class_type.nil?
 	end
 end
@@ -94,9 +96,9 @@ class JavaInstanceArray < JavaInstance
 	def element_type
 		t = @class_type.gsub('[', '')
 		if t[0] == 'L'
-			return t[1..-2]
+			t[1..-2]
 		else
-			return t
+			t
 		end
 	end
 end
@@ -121,22 +123,18 @@ class JVMClass
 		@resolved = {}
 	end
 
-	def has_method? method
-		begin
-			@class_file.get_method(method.method_name, method.method_type)
-			return true
-		rescue
-			return false
-		end
+	def method? method
+		@class_file.get_method(method.method_name, method.method_type)
+		true
+	rescue RuntimeError
+		false
 	end
 
-	def has_field? field
-		begin
-			@class_file.get_field(field.field_name, field.field_type)
-			return true
-		rescue
-			return false
-		end
+	def field? field
+		@class_file.get_field(field.field_name, field.field_type)
+		true
+	rescue RuntimeError
+		false
 	end
 end
 
@@ -152,11 +150,9 @@ class JVMField
 	def default_value
 		case @field_type
 		when 'B', 'C', 'D', 'F', 'I', 'J', 'S'
-			return 0
+			0
 		when 'Z'
-			return false
-		else
-			return nil
+			false
 		end
 	end
 end
@@ -198,7 +194,7 @@ class JVMMethod
 		@retval = pattern[2]
 	end
 
-	def has_return_value?
+	def return_value?
 		@retval != 'V'
 	end
 
@@ -209,9 +205,9 @@ class JVMMethod
 			n[i] = '_jni_'
 			n[0] = n[0].upcase
 		else
-			n = 'Jni_' + n
+			n = "Jni_#{n}"
 		end
-		n.gsub('$', '_') + '_' + @method_name
+		"#{n.gsub('$', '_')}_#{@method_name}"
 	end
 end
 
@@ -233,7 +229,7 @@ class JVM
 			initialize_fields jvmclass.reference, jvmclass
 			@classes[class_type] = jvmclass
 			clinit = JVMMethod.new('<clinit>', '()V')
-			run Frame.new(jvmclass, clinit, []) if jvmclass.has_method?(clinit)
+			run Frame.new(jvmclass, clinit, []) if jvmclass.method?(clinit)
 			return jvmclass
 		end
 	end
@@ -254,7 +250,7 @@ class JVM
 	def resolve_field jvmclass, field
 		if jvmclass.resolved.has_key? field
 			return jvmclass.resolved[field]
-		elsif jvmclass.has_field?(field)
+		elsif jvmclass.field?(field)
 			return jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			return resolve_field(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
@@ -264,7 +260,7 @@ class JVM
 	end
 
 	def resolve_special_method reference_jvmclass, method_jvmclass, method
-		if reference_jvmclass.class_file.access_flags.is_super? and
+		if reference_jvmclass.class_file.access_flags.super? and
 			method.method_name != '<init>' and
 			is_type_equal_or_superclass?(reference_jvmclass.class_file.this_class_type, method_jvmclass.class_file.this_class_type)
 			return resolve_method(load_class(reference_jvmclass.class_file.get_attrib_name(reference_jvmclass.class_file.super_class)), method)
@@ -276,7 +272,7 @@ class JVM
 	def resolve_method jvmclass, method
 		if jvmclass.resolved.has_key? method
 			return jvmclass.resolved[method]
-		elsif jvmclass.has_method?(method)
+		elsif jvmclass.method?(method)
 			return jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			return resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
@@ -286,8 +282,8 @@ class JVM
 	end
 
 	def initialize_fields reference, jvmclass
-		static = reference.is_class_reference?
-		jvmclass.class_file.fields.select { |f| static == !!f.access_flags.is_static? }.each do |f|
+		static = reference.class_reference?
+		jvmclass.class_file.fields.select { |f| static == !!f.access_flags.static? }.each do |f|
 			jvmfield = JVMField.new(
 				jvmclass.class_file.constant_pool[f.name_index].value,
 				jvmclass.class_file.constant_pool[f.descriptor_index].value)
@@ -384,8 +380,8 @@ class JVM
 
 	def run frame
 		result = run_and_return frame
-		if frame.method.has_return_value?
-			if @frames.last.is_native?
+		if frame.method.return_value?
+			if @frames.last.native?
 				return result
 			else
 				@frames.last.stack.push(result)
@@ -428,7 +424,7 @@ class JVM
 								frame.stack.push attrib.value
 							elsif attrib.is_a? ConstantPoolConstantIndex1Info
 								value = frame.jvmclass.class_file.constant_pool[attrib.index1].value
-								if attrib.is_string?
+								if attrib.string?
 									reference = new_java_string(value)
 									method = JVMMethod.new('intern', '()Ljava/lang/String;')
 									frame.stack.push run_and_return(Frame.new(resolve_method(load_class(reference.class_type), method),

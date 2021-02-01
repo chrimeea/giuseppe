@@ -3,6 +3,6 @@
 require './jvm'
 require 'logger'
 
-$logger = Logger.new(STDOUT)
+$logger = Logger.new($stdout)
 $logger.level = Logger::ERROR
 JVM.new.run_main ARGV.first

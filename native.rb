@@ -1,21 +1,21 @@
-def Java_lang_jni_System_1_write jvm, params
+def Java_lang_jni_System_1_write _, params
 	print params[1].values.pack('c*')
 end
 
-def Java_lang_jni_System_2_write jvm, params
-	STDERR.print params[1].values.pack('c*')
+def Java_lang_jni_System_2_write _, params
+	$stderr.print params[1].values.pack('c*')
 end
 
-def Java_lang_jni_System_arraycopy jvm, params	
+def Java_lang_jni_System_arraycopy _, params
 	src, srcpos, dst, dstpos, length = params
 	dst.values[dstpos...(dstpos + length)] = src.values[srcpos...(srcpos + length)]
 end
 
-def Java_lang_jni_Object_hashCode jvm, params
+def Java_lang_jni_Object_hashCode _, params
 	params.first.hash
 end
 
-def Java_lang_jni_Object_getClass jvm, params
+def Java_lang_jni_Object_getClass _, params
 	jvm.new_java_class params.first.class_type
 end
 
@@ -32,9 +32,9 @@ def Java_lang_jni_Class_isInterface jvm, params
 	field = JVMField.new('name', 'Ljava/lang/String;')
 	nameref = reference.get_field(jvm.resolve_field(jvm.load_class(reference.class_type), field), field)
 	begin
-		jvm.load_class(jvm.java_to_native_string(nameref)).class_file.access_flags.is_interface? ? 1 : 0
+		jvm.load_class(jvm.java_to_native_string(nameref)).class_file.access_flags.interface? ? 1 : 0
 	rescue Errno::ENOENT
-		return 0
+		0
 	end
 end
 
@@ -43,7 +43,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	elem_class_type = 'java/lang/StackTraceElement'
 	array_class_type = "[L#{elem_class_type};"
 	stacktrace = []
-	jvm.frames.each_with_index do |f, i|
+	jvm.frames.each do |f|
 		break if f.jvmclass.class_file.this_class_type == reference.class_type
 		stacktrace << jvm.new_java_object_with_constructor(elem_class_type, 
 			JVMMethod.new('<init>',
