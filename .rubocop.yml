@@ -2,17 +2,33 @@ Layout/IndentationStyle:
   EnforcedStyle: tabs
 Layout/IndentationWidth:
   Enabled: false
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
 Style/MethodDefParentheses:
   Enabled: false
 Style/OneLineConditional:
   Enabled: false
 Style/SignalException:
-  EnforcedStyle: semantic
-Layout/EmptyLineAfterGuardClause:
   Enabled: false
+Style/GlobalVars:
+  AllowedVariables: ['$logger']
 Naming/MethodParameterName:
   MinNameLength: 2
 Naming/MethodName:
   IgnoredPatterns: ['\AJava_']
-Style/GlobalVars:
-  AllowedVariables: ['$logger']
+Metrics/MethodLength:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/BlockLength:
+  Enabled: false
+Lint/BinaryOperatorWithIdenticalOperands:
+  Enabled: false
+Lint/EmptyWhen:
+  Enabled: false

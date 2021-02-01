@@ -235,7 +235,7 @@ class ClassFile
 	end
 
 	def source_file
-		a = @attributes.find { |a| a.is_a? ClassAttributeSourceFile }
+		a = @attributes.find { |attrib| attrib.is_a? ClassAttributeSourceFile }
 		@constant_pool[a.sourcefile_index].value if a
 	end
 

@@ -7,7 +7,7 @@ class ClassLoader
 		constant_pool_count = @parser.load_u2 - 1
 		tag = nil
 		constant_pool_count.times do
-			if tag == 5 or tag == 6
+			if [5, 6].include? tag
 				@class_file.constant_pool << nil
 				tag = nil
 			else
@@ -19,9 +19,9 @@ class ClassLoader
 				when 3, 4
 					v = ConstantPoolConstantValueInfo.new
 					v.value = @parser.load_u4
-					if (tag == 4)
-						s = if (v.value >> 31) == 0 then 1 else -1 end
-						e = (v.value >> 23) & 0xff;
+					if tag == 4
+						s = if (v.value >> 31).zero? then 1 else -1 end
+						e = (v.value >> 23) & 0xff
 						m = if e == 0 then (v.value & 0x7fffff) << 1 else (v.value & 0x7fffff) | 0x800000 end
 						v.value = (s * m * 2 ** (e - 150)).to_f
 					else
@@ -32,7 +32,7 @@ class ClassLoader
 					high_bytes = @parser.load_u4
 					low_bytes = @parser.load_u4
 					v.value = (high_bytes << 32) + low_bytes
-					if (tag == 6)
+					if tag == 6
 						s = if (v.value >> 63) == 0 then 1 else -1 end
 						e = (v.value >> 52) & 0x7ff
 						m = if e == 0 then (v.value & 0xfffffffffffff) << 1 else (v.value & 0xfffffffffffff) | 0x10000000000000 end
@@ -62,7 +62,7 @@ class ClassLoader
 	end
 
 	def load_interfaces
-		return @parser.load_u2_array(@parser.load_u2)
+		@parser.load_u2_array(@parser.load_u2)
 	end
 
 	def load_fields
@@ -75,7 +75,7 @@ class ClassLoader
 			c.attributes = load_attributes
 			f << c
 		end
-		return f
+		f
 	end
 
 	def load_attributes
@@ -153,7 +153,7 @@ class ClassLoader
 			a.attribute_name_index = attribute_name_index
 			attribs << a
 		end
-		return attribs
+		attribs
 	end
 
 	def load_file name
@@ -170,10 +170,10 @@ class ClassLoader
 		@class_file.fields = load_fields
 		@class_file.methods = load_fields
 		@class_file.attributes = load_attributes
-		return @class_file
+		@class_file
 	end
 
 	def class_path class_type
-		class_type + '.class'
+		"#{class_type}.class"
 	end
 end
