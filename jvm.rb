@@ -121,16 +121,14 @@ class JVMClass
 
 	def method? method
 		@class_file.get_method(method.method_name, method.method_type)
-		true
 	rescue RuntimeError
-		false
+		nil
 	end
 
 	def field? field
 		@class_file.get_field(field.field_name, field.field_type)
-		true
 	rescue RuntimeError
-		false
+		nil
 	end
 end
 
@@ -231,9 +229,10 @@ class JVM
 		run Frame.new(load_class(class_type), JVMMethod.new('main', '([Ljava/lang/String;)V'), [arrayref])
 	rescue JVMError => e
 		method = JVMMethod.new('printStackTrace', '()V')
-		run Frame.new(resolve_method(load_class(e.exception.class_type), method),
-			method,
-			[e.exception]
+		run Frame.new(
+				resolve_method(load_class(e.exception.class_type), method),
+				method,
+				[e.exception]
 		)
 	end
 
@@ -273,7 +272,7 @@ class JVM
 
 	def initialize_fields reference, jvmclass
 		static = reference.class_reference?
-		jvmclass.class_file.fields.select { |f| static == !!f.access_flags.static? }.each do |f|
+		jvmclass.class_file.fields.select { |f| static == !f.access_flags.static?.nil? }.each do |f|
 			jvmfield = JVMField.new(
 					jvmclass.class_file.constant_pool[f.name_index].value,
 					jvmclass.class_file.constant_pool[f.descriptor_index].value
