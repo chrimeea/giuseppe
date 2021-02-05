@@ -284,7 +284,7 @@ class JVM
 	end
 
 	def check_array_index reference, index
-		return unless index.negative? || index >= reference.values.size
+		return if index >= 0 && index < reference.values.size
 		raise JVMError, new_java_object_with_constructor('java/lang/ArrayIndexOutOfBoundsException')
 	end
 
