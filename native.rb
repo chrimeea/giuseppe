@@ -47,12 +47,12 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	stacktrace = []
 	jvmclass = jvm.load_class elem_class_type
 	jvm.frames.each do |f|
-		break if f.jvmclass.class_file.this_class_type == reference.class_type
+		break if f.jvmclass.class_type == reference.jvmclass.class_type
 		stacktrace << jvm.new_java_object_with_constructor(
 			jvmclass,
 			JavaMethod.new('<init>',
 				'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'),
-			[jvm.new_java_string(f.jvmclass.class_file.this_class_type),
+			[jvm.new_java_string(f.jvmclass.class_type),
 				jvm.new_java_string(f.method.method_name),
 				jvm.new_java_string(f.jvmclass.class_file.source_file),
 				f.code_attr.line_number_for_pc(f.pc)]
@@ -61,6 +61,6 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])
 	stacktrace.reverse.each_with_index { |s, i| arrayref.values[i] = s }
 	method = JavaMethod.new('setStackTrace', "(#{array_class_type})V")
-	jvm.run jvm.load_class(reference.class_type), method, [reference, arrayref]
+	jvm.run reference.jvmclass, method, [reference, arrayref]
 	reference
 end
