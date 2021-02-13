@@ -576,7 +576,7 @@ class Resolver
 		else
 			jvmclass = JavaClass.new class_type
 			@classes[class_type] = jvmclass
-			if !jvmclass.array?
+			unless jvmclass.array?
 				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
 				initialize_fields jvmclass.reference, jvmclass
 				clinit = JavaMethod.new('<clinit>', '()V')
