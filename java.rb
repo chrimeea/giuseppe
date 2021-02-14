@@ -10,7 +10,7 @@ def run_main jvm, class_type
 	jvm.run jvm.load_class(class_type), JavaMethod.new('main', '([Ljava/lang/String;)V'), [arrayref]
 rescue JVMError => e
 	method = JavaMethod.new('printStackTrace', '()V')
-	jvm.run e.exception.class_type, method, [e.exception]
+	jvm.run e.exception.jvmclass, method, [e.exception]
 end
 
 $logger = Logger.new($stdout)

@@ -85,6 +85,14 @@ class JavaField
 		@field_type = field_type
 	end
 
+	def hash
+		"#{field_name}|#{field_type}".hash
+	end
+
+	def eql? other
+		field_name.eql?(other.field_name) && field_type.eql?(other.field_type)
+	end
+
 	def default_value
 		case @field_type
 		when 'B', 'C', 'D', 'F', 'I', 'J', 'S'
@@ -104,25 +112,35 @@ class JavaMethod
 		parse_type_descriptors
 	end
 
+	def hash
+		"#{method_name}|#{method_type}".hash
+	end
+
+	def eql? other
+		method_name.eql?(other.method_name) && method_type.eql?(other.method_type)
+	end
+
 	def parse_type_descriptors
 		pattern = @method_type.match(/^\(([^\)]*)\)(.+)$/)
 		descriptors = pattern[1]
 		i = 0
 		@args = []
+		a = ''
 		while i < descriptors.size
 			case descriptors[i]
 			when 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'
-				@args << descriptors[i]
+				@args << a + descriptors[i]
+				a = ''
 			when 'L'
-				i += 1
 				j = descriptors.index(';', i)
-				@args << descriptors[i...j]
+				@args << a + descriptors[i..j]
 				i = j
+				a = ''
 			when '['
 				j = i
 				j += 1 while descriptors[j] == '['
-				@args << descriptors[i..j]
-				i = j
+				a += descriptors[i...j]
+				i = j - 1
 			end
 			i += 1
 		end

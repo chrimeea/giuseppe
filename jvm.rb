@@ -507,9 +507,9 @@ class Interpreter
 				handle_exception e.exception
 			rescue ZeroDivisionError
 				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArithmeticException'))
-			rescue NoMethodError => e
-				raise e if e.receiver
-				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
+			# rescue NoMethodError => e
+			# 	raise e if e.receiver
+			# 	handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
 			end
 		end
 	end
@@ -530,6 +530,7 @@ class Interpreter
 				return e
 			end
 		end
+		nil
 	end
 end
 
@@ -552,9 +553,8 @@ class Scheduler
 		@frames.push frame
 		$logger.info('jvm.rb') do
 			"#{@frames.size}, "\
-			"#{frame.jvmclass.class_file.this_class_type}, "\
-			"#{frame.method.method_name}, "\
-			"PARAMS: #{frame.locals}"
+			"#{frame.jvmclass.class_type}, "\
+			"#{frame.method.method_name}"
 		end
 		if frame.code_attr
 			@jvm.loop_code frame

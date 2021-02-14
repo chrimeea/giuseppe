@@ -17,8 +17,8 @@ def Java_lang_jni_Object_hashCode _, params
 	params.first.hash
 end
 
-def Java_lang_jni_Object_getClass _, params
-	jvm.new_java_class params.first.class_type
+def Java_lang_jni_Object_getClass jvm, params
+	jvm.new_java_class params.first.jvmclass.class_type
 end
 
 def Java_lang_jni_String_valueOf jvm, params
