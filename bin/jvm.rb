@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require './classloader'
-require './language'
-require './native'
+require_relative 'classloader'
+require_relative 'language'
+require_relative 'native'
 
 class Frame
 	attr_reader :jvmclass, :stack, :locals, :code_attr, :exceptions, :method
@@ -673,10 +673,7 @@ class Allocator
 		stringref = new_java_object jvmclass
 		arrayref = new_java_array @jvm.load_class('[B'), [value.chars.size]
 		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
-		@jvm.run(jvmclass,
-				JavaMethod.new('<init>', '([B)V'),
-				[stringref, arrayref]
-		)
+		@jvm.run(jvmclass, JavaMethod.new('<init>', '([B)V'), [stringref, arrayref])
 		stringref
 	end
 

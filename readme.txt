@@ -11,6 +11,6 @@ Classpath is only the current folder.
 javac -source 1.6 -target 1.6 java/lang/*.java
 javac -source 1.6 -target 1.6 java/io/*.java
 
-Usage example:
+Usage example to compile and run a Test.java file:
 javac -source 1.6 -target 1.6 Test.java
-./java.rb Test
+./bin/java.rb Test

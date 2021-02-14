@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require './classfile'
+require_relative 'classfile'
 
 class ClassLoader
 	def load_constant_pool

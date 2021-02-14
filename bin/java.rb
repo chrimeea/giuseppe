@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 # frozen_string_literal: true
 
-require './jvm'
+require_relative 'jvm'
 require 'logger'
 
 def run_main jvm, class_type
