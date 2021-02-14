@@ -507,9 +507,9 @@ class Interpreter
 				handle_exception e.exception
 			rescue ZeroDivisionError
 				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArithmeticException'))
-			# rescue NoMethodError => e
-			# 	raise e if e.receiver
-			# 	handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
+			rescue NoMethodError => e
+				raise e if e.receiver
+				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
 			end
 		end
 	end
