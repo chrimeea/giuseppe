@@ -53,6 +53,13 @@ class Frame
 		@pc += 1
 		@code_attr.code[@pc - 1]
 	end
+
+	def line_number
+		a = @code_attr.attributes.find { |attrib| attrib.is_a? ClassAttributeLineNumber }
+		return 0 unless a
+		i = a.line_number_table.index { |t| t.start_pc > @pc } || 0
+		a.line_number_table[i - 1].line_number
+	end
 end
 
 class Scheduler
