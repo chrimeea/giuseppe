@@ -287,9 +287,15 @@ class Interpreter
 	end
 
 	def loop_code
+		$logger.debug('interpreter.rb') do
+			"#{@jvm.frames.size}, #{@frame.code_attr.code}"
+		end
 		while @frame.pc < @frame.code_attr.code.length
 			begin
 				opcode = @frame.next_instruction
+				$logger.debug('interpreter.rb') do
+					"#{@jvm.frames.size}, #{opcode}"
+				end
 				case opcode
 				when 0, 133, 134, 135, 137, 138, 141
 				when 1
