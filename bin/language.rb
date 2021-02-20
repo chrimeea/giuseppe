@@ -38,25 +38,24 @@ class JavaInstanceArray < JavaInstance
 end
 
 class JavaClass
-	attr_reader :class_type, :reference, :resolved
-	attr_accessor :class_file
+	attr_reader :class_type, :reference, :resolved, :class_file, :fields, :methods
 
 	def initialize class_type
 		@class_type = class_type
 		@reference = JavaInstance.new
 		@resolved = {}
+		@fields = {}
+		@methods = {}
 	end
 
-	def method? method
-		@class_file.get_method(method.method_name, method.method_type)
-	rescue RuntimeError
-		nil
-	end
-
-	def field? field
-		@class_file.get_field(field.field_name, field.field_type)
-	rescue RuntimeError
-		nil
+	def class_file= value
+		@class_file = value
+		value.fields.each do |f|
+			@fields[JavaField.new(value.constant_pool[f.name_index].value, value.constant_pool[f.descriptor_index].value)] = f
+		end
+		value.methods.each do |m|
+			@methods[JavaMethod.new(value.constant_pool[m.name_index].value, value.constant_pool[m.descriptor_index].value)] = m
+		end
 	end
 
 	def element_type

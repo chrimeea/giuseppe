@@ -11,8 +11,9 @@ class Frame
 
 	def initialize jvmclass, method, params
 		@jvmclass = jvmclass
-		@code_attr = jvmclass.class_file.get_method(method.method_name,
-				method.method_type).code
+		m = jvmclass.methods[method]
+		fail "Unknown method #{method.method_name}" unless m
+		@code_attr = m.code
 		if @code_attr
 			@stack = []
 			@exceptions = code_attr.exception_table
@@ -111,7 +112,7 @@ class Resolver
 				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
 				initialize_fields jvmclass.reference, jvmclass
 				clinit = JavaMethod.new('<clinit>', '()V')
-				@jvm.run(jvmclass, clinit, []) if jvmclass.method?(clinit)
+				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
 			end
 			jvmclass
 		end
@@ -133,7 +134,7 @@ class Resolver
 	def resolve_field jvmclass, field
 		if jvmclass.resolved.key? field
 			jvmclass.resolved[field]
-		elsif jvmclass.field?(field)
+		elsif jvmclass.fields.include?(field)
 			jvmclass.resolved[field] = jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			jvmclass.resolved[field] = resolve_field(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
@@ -155,7 +156,7 @@ class Resolver
 	def resolve_method jvmclass, method
 		if jvmclass.resolved.key? method
 			jvmclass.resolved[method]
-		elsif jvmclass.method?(method)
+		elsif jvmclass.methods.include?(method)
 			jvmclass.resolved[method] = jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			jvmclass.resolved[method] = resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)

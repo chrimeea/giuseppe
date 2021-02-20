@@ -352,7 +352,7 @@ class Interpreter
 					@frame.stack.pop
 				when 89
 					op_dup
-				when 96
+				when 96, 98
 					op_iadd
 				when 100
 					op_isub

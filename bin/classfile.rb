@@ -225,26 +225,6 @@ class ClassFile
 		@constant_pool[a.sourcefile_index].value if a
 	end
 
-	def get_method method_name, method_type
-		@methods.each do |m|
-			if	@constant_pool[m.name_index].value == method_name &&
-				@constant_pool[m.descriptor_index].value == method_type
-				return m
-			end
-		end
-		fail "Unknown method #{method_name}"
-	end
-
-	def get_field field_name, field_type
-		@fields.each do |f|
-			if	@constant_pool[f.name_index].value == field_name &&
-				@constant_pool[f.descriptor_index].value == field_type
-				return f
-			end
-		end
-		fail "Unknown field #{field_name}"
-	end
-
 	def class_and_name_and_type index
 		attrib = @constant_pool[index]
 		class_type = get_attrib_name(attrib.index1)
