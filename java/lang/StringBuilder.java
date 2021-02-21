@@ -16,8 +16,24 @@ public class StringBuilder {
 		return append(String.valueOf(i));
 	}
 
-	public StringBuilder append(float i) {
-		return append(String.valueOf(i));
+	public StringBuilder append(long l) {
+		return append(String.valueOf(l));
+	}
+
+	public StringBuilder append(double d) {
+		return append(String.valueOf(d));
+	}
+
+	public StringBuilder append(boolean b) {
+		return append(String.valueOf(b));
+	}
+
+	public StringBuilder append(char c) {
+		return append(String.valueOf(c));
+	}
+
+	public StringBuilder append(float f) {
+		return append(String.valueOf(f));
 	}
 
 	public StringBuilder append(Object obj) {
