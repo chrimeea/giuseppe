@@ -93,16 +93,11 @@ class JavaField
 	end
 
 	def eql? other
-		field_name.eql?(other.field_name) && field_type.eql?(other.field_type)
+		field_name.eql? other.field_name
 	end
 
 	def default_value
-		case @field_type
-		when 'B', 'C', 'D', 'F', 'I', 'J', 'S'
-			0
-		when 'Z'
-			false
-		end
+		return 0 if ['B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'].include? @field_type
 	end
 end
 
