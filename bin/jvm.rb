@@ -80,7 +80,7 @@ class Scheduler
 
 	def run_and_return frame
 		@frames.push frame
-		$logger.info('jvm.rb') do
+		$logger.debug('jvm.rb') do
 			"#{@frames.size}, "\
 			"#{frame.jvmclass.class_type}, "\
 			"#{frame.method.method_name}"

@@ -157,6 +157,7 @@ class ClassLoader
 	end
 
 	def load_file name
+		$logger.info "Loading #{name}"
 		@class_file = ClassFile.new
 		@parser = BinaryParser.new IO.binread(name)
 		@class_file.magic = @parser.load_u4
