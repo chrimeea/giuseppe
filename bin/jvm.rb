@@ -134,8 +134,6 @@ class Resolver
 	def resolve_field jvmclass, field
 		if jvmclass.resolved.key? field
 			jvmclass.resolved[field]
-		elsif jvmclass.fields.include?(field)
-			jvmclass.resolved[field] = jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			jvmclass.resolved[field] = resolve_field(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
 		else
@@ -156,8 +154,6 @@ class Resolver
 	def resolve_method jvmclass, method
 		if jvmclass.resolved.key? method
 			jvmclass.resolved[method]
-		elsif jvmclass.methods.include?(method)
-			jvmclass.resolved[method] = jvmclass
 		elsif jvmclass.class_file.super_class.nonzero?
 			jvmclass.resolved[method] = resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
 		else

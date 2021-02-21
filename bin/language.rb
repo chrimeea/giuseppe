@@ -51,10 +51,14 @@ class JavaClass
 	def class_file= value
 		@class_file = value
 		value.fields.each do |f|
-			@fields[JavaField.new(value.constant_pool[f.name_index].value, value.constant_pool[f.descriptor_index].value)] = f
+			field = JavaField.new(value.constant_pool[f.name_index].value, value.constant_pool[f.descriptor_index].value)
+			@fields[field] = f
+			@resolved[field] = self
 		end
 		value.methods.each do |m|
-			@methods[JavaMethod.new(value.constant_pool[m.name_index].value, value.constant_pool[m.descriptor_index].value)] = m
+			method = JavaMethod.new(value.constant_pool[m.name_index].value, value.constant_pool[m.descriptor_index].value)
+			@methods[method] = m
+			@resolved[method] = self
 		end
 	end
 
