@@ -16,6 +16,14 @@ public class PrintStream extends FilterOutputStream {
 		print(String.valueOf(b));
 	}
 
+	public void print(byte b) {
+		print(String.valueOf(b));
+	}
+
+	public void print(short s) {
+		print(String.valueOf(s));
+	}
+
 	public void print(int i) {
 		print(String.valueOf(i));
 	}
@@ -71,6 +79,16 @@ public class PrintStream extends FilterOutputStream {
 
 	public void println(int i) {
 		print(i);
+		println();
+	}
+
+	public void println(short s) {
+		print(s);
+		println();
+	}
+
+	public void println(byte b) {
+		print(b);
 		println();
 	}
 

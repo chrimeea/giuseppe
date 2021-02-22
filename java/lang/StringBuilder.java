@@ -12,6 +12,14 @@ public class StringBuilder {
 		return this;
 	}
 
+	public StringBuilder append(byte b) {
+		return append(String.valueOf(b));
+	}
+
+	public StringBuilder append(short s) {
+		return append(String.valueOf(s));
+	}
+
 	public StringBuilder append(int i) {
 		return append(String.valueOf(i));
 	}

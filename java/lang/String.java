@@ -34,6 +34,8 @@ public class String {
 		return new String(bconcat);
 	}
 
+	public static native String valueOf(byte b);
+	public static native String valueOf(short s);
 	public static native String valueOf(int i);
 	public static native String valueOf(long l);
 	public static native String valueOf(float f);
