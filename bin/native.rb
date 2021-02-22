@@ -32,12 +32,9 @@ end
 def Java_lang_jni_Class_isInterface jvm, params
 	reference = params.first
 	field = JavaField.new('name', 'Ljava/lang/String;')
-	nameref = reference.get_field(jvm.resolve_field(jvm.load_class(reference.class_type), field), field)
-	begin
-		jvm.load_class(jvm.java_to_native_string(nameref)).class_file.access_flags.interface? ? 1 : 0
-	rescue Errno::ENOENT
-		0
-	end
+	nameref = jvm.get_field(reference, reference.jvmclass, field)
+	class_file = jvm.load_class(jvm.java_to_native_string(nameref)).class_file
+	class_file && class_file.access_flags.interface? ? 1 : 0
 end
 
 def Java_lang_jni_Throwable_fillInStackTrace jvm, params

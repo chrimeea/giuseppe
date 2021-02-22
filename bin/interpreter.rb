@@ -141,6 +141,10 @@ class Interpreter
 		@frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(@frame.stack.pop, 2), 2)
 	end
 
+	def op_i2f
+		@frame.stack.push @frame.stack.pop.to_f
+	end
+
 	def op_getstatic
 		field_index = BinaryParser.to_16bit_unsigned(
 			@frame.next_instruction,
@@ -297,7 +301,7 @@ class Interpreter
 					"#{@jvm.frames.size}, #{opcode}"
 				end
 				case opcode
-				when 0, 133, 134, 135, 137, 138, 141
+				when 0, 133, 141
 				when 1
 					op_aconst nil
 				when 2
@@ -386,6 +390,8 @@ class Interpreter
 					op_ixor
 				when 132
 					op_iinc
+				when 134, 135, 137, 138
+					op_i2f
 				when 145
 					op_i2b
 				when 146
