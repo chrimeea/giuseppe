@@ -302,9 +302,9 @@ class Interpreter
 					op_aconst nil
 				when 2
 					op_aconst(-1)
-				when 3, 9, 14
+				when 3, 9
 					op_aconst 0
-				when 4, 10, 15
+				when 4, 10
 					op_aconst 1
 				when 5
 					op_aconst 2
@@ -314,13 +314,19 @@ class Interpreter
 					op_aconst 4
 				when 8
 					op_aconst 5
+				when 11, 14
+					op_aconst 0.0
+				when 12, 15
+					op_aconst 1.0
+				when 13
+					op_aconst 2.0
 				when 16
 					op_bipush
 				when 18
 					op_ldc
 				when 20
 					op_ldc2_wide
-				when 21, 22, 24, 25
+				when 21, 22, 23, 24, 25
 					op_iload @frame.next_instruction
 				when 55, 57
 					op_lstore @frame.next_instruction
@@ -360,9 +366,9 @@ class Interpreter
 					op_dup
 				when 96, 97, 98, 99
 					op_iadd
-				when 100, 101, 103
+				when 100, 101, 102, 103
 					op_isub
-				when 104, 105, 107
+				when 104, 105, 106, 107
 					op_imul
 				when 108, 109, 111
 					op_idiv
