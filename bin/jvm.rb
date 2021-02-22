@@ -154,6 +154,8 @@ class Resolver
 	def resolve_method jvmclass, method
 		if jvmclass.resolved.key? method
 			jvmclass.resolved[method]
+		elsif jvmclass.array?
+			jvmclass.resolved[method] = resolve_method(load_class('java/lang/Object'), method)
 		elsif jvmclass.class_file.super_class.nonzero?
 			jvmclass.resolved[method] = resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
 		else
