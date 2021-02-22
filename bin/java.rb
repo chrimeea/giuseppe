@@ -14,6 +14,6 @@ rescue JVMError => e
 end
 
 $logger = Logger.new($stdout)
-$logger.level = Logger::INFO
-$logger.info "Ruby #{RUBY_VERSION} - Running Giuseppe JVM 1.6 interpreter by Cristian Mocanu"
+$logger.level = Logger::ERROR
+$logger.info "Ruby #{RUBY_VERSION} - Running Giuseppe JVM 1.6_1.0 interpreter by Cristian Mocanu"
 run_main JVM.new, ARGV.first
