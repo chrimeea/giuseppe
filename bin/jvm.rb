@@ -155,6 +155,8 @@ end
 class Allocator
 	def initialize jvm
 		@jvm = jvm
+		@classes = {}
+		@loader = ClassLoader.new
 	end
 
 	def java_to_native_string reference
@@ -164,9 +166,9 @@ class Allocator
 	end
 
 	def new_java_string value
-		jvmclass = @jvm.load_class('java/lang/String')
+		jvmclass = load_class('java/lang/String')
 		stringref = new_java_object jvmclass
-		arrayref = new_java_array @jvm.load_class('[B'), [value.chars.size]
+		arrayref = new_java_array load_class('[B'), [value.chars.size]
 		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
 		@jvm.run(jvmclass, JavaMethod.new('<init>', '([B)V'), [stringref, arrayref])
 		stringref
@@ -182,11 +184,6 @@ class Allocator
 		reference
 	end
 
-	def check_array_index reference, index
-		return if index >= 0 && index < reference.values.size
-		raise JVMError, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArrayIndexOutOfBoundsException'))
-	end
-
 	def initialize_fields reference, jvmclass
 		static = reference.class_reference?
 		jvmclass.class_file.fields.select { |f| static == !f.access_flags.static?.nil? }.each do |f|
@@ -197,7 +194,23 @@ class Allocator
 			@jvm.set_field(reference, jvmclass, jvmfield, jvmfield.default_value)
 		end
 		return if static || jvmclass.class_file.super_class.zero?
-		initialize_fields(reference, @jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
+		initialize_fields(reference, load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
+	end
+
+	def load_class class_type
+		if @classes.key? class_type
+			@classes[class_type]
+		else
+			jvmclass = JavaClass.new(JavaInstance.new, class_type)
+			@classes[class_type] = jvmclass
+			unless jvmclass.array?
+				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
+				initialize_fields jvmclass.reference, jvmclass
+				clinit = JavaMethod.new('<clinit>', '()V')
+				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
+			end
+			jvmclass
+		end
 	end
 end
 
@@ -206,24 +219,10 @@ class JVM
 		@resolver = Resolver.new self
 		@allocator = Allocator.new self
 		@scheduler = Scheduler.new self
-		@classes = {}
-		@loader = ClassLoader.new
 	end
 
 	def load_class class_type
-		if @classes.key? class_type
-			@classes[class_type]
-		else
-			jvmclass = JavaClass.new class_type
-			@classes[class_type] = jvmclass
-			unless jvmclass.array?
-				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
-				@allocator.initialize_fields jvmclass.reference, jvmclass
-				clinit = JavaMethod.new('<clinit>', '()V')
-				run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
-			end
-			jvmclass
-		end
+		@allocator.load_class class_type
 	end
 
 	def frames
@@ -231,7 +230,8 @@ class JVM
 	end
 
 	def check_array_index reference, index
-		@allocator.check_array_index reference, index
+		return if index >= 0 && index < reference.values.size
+		raise JVMError, @jvm.new_java_object_with_constructor(load_class('java/lang/ArrayIndexOutOfBoundsException'))
 	end
 
 	def run_and_return jvmclass, method, params

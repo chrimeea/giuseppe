@@ -40,9 +40,9 @@ end
 class JavaClass
 	attr_reader :class_type, :reference, :resolved, :class_file, :fields, :methods
 
-	def initialize class_type
+	def initialize reference, class_type
 		@class_type = class_type
-		@reference = JavaInstance.new
+		@reference = reference
 		@resolved = {}
 		@fields = {}
 		@methods = {}
