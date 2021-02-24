@@ -3,6 +3,46 @@
 require_relative 'classfile'
 
 class ClassLoader
+	def read_constant_utf8 tag
+		ConstantPoolConstantValueInfo.new tag, @parser.load_string(@parser.load_u2)
+	end
+
+	def read_constant_int_or_float tag
+		value = @parser.load_u4
+		if tag == 4
+			s = if (value >> 31).zero? then 1 else -1 end
+			e = (value >> 23) & 0xff
+			m = if e.zero? then (value & 0x7fffff) << 1 else (value & 0x7fffff) | 0x800000 end
+			value = (s * m * 2**(e - 150)).to_f
+		else
+			value = BinaryParser.to_signed(value, 4)
+		end
+		ConstantPoolConstantValueInfo.new tag, value
+	end
+
+	def read_constant_long_or_double tag
+		high_bytes = @parser.load_u4
+		low_bytes = @parser.load_u4
+		value = (high_bytes << 32) + low_bytes
+		if tag == 6
+			s = if (value >> 63).zero? then 1 else -1 end
+			e = (value >> 52) & 0x7ff
+			m = if e.zero? then (value & 0xfffffffffffff) << 1 else (value & 0xfffffffffffff) | 0x10000000000000 end
+			value = (s * m * 2**(e - 1075)).to_f
+		else
+			value = BinaryParser.to_signed(value, 8)
+		end
+		ConstantPoolConstantValueInfo.new tag, value
+	end
+
+	def read_constant_string tag
+		ConstantPoolConstantIndex1Info.new tag, @parser.load_u2
+	end
+
+	def read_constant_name_and_type tag
+		ConstantPoolConstantIndex2Info.new tag, @parser.load_u2, @parser.load_u2
+	end
+
 	def load_constant_pool
 		constant_pool_count = @parser.load_u2 - 1
 		tag = nil
@@ -14,48 +54,16 @@ class ClassLoader
 				tag = @parser.load_u1
 				case tag
 				when 1
-					v = ConstantPoolConstantValueInfo.new
-					v.value = @parser.load_string(@parser.load_u2)
+					v = read_constant_utf8 tag
 				when 3, 4
-					v = ConstantPoolConstantValueInfo.new
-					v.value = @parser.load_u4
-					if tag == 4
-						s = if (v.value >> 31).zero? then 1 else -1 end
-						e = (v.value >> 23) & 0xff
-						m = if e == 0 then (v.value & 0x7fffff) << 1 else (v.value & 0x7fffff) | 0x800000 end
-						v.value = (s * m * 2 ** (e - 150)).to_f
-					else
-						v.value = BinaryParser.to_signed(v.value, 4)
-					end
+					v = read_constant_int_or_float tag
 				when 5, 6
-					v = ConstantPoolConstantValueInfo.new
-					high_bytes = @parser.load_u4
-					low_bytes = @parser.load_u4
-					v.value = (high_bytes << 32) + low_bytes
-					if tag == 6
-						s = if (v.value >> 63) == 0 then 1 else -1 end
-						e = (v.value >> 52) & 0x7ff
-						m = if e == 0 then (v.value & 0xfffffffffffff) << 1 else (v.value & 0xfffffffffffff) | 0x10000000000000 end
-						v.value = (s * m * 2 ** (e - 1075)).to_f
-					else
-						v.value = BinaryParser.to_signed(v.value, 8)
-					end
-				when 7
-					v = ConstantPoolConstantIndex1Info.new
-					v.index1 = @parser.load_u2
-				when 8
-					v = ConstantPoolConstantIndex1Info.new
-					v.index1 = @parser.load_u2
-				when 9, 10, 11
-					v = ConstantPoolConstantIndex2Info.new
-					v.index1 = @parser.load_u2
-					v.index2 = @parser.load_u2
-				when 12
-					v = ConstantPoolConstantIndex2Info.new
-					v.index1 = @parser.load_u2
-					v.index2 = @parser.load_u2
+					v = read_constant_long_or_double tag
+				when 7, 8
+					v = read_constant_string tag
+				when 9, 10, 11, 12
+					v = read_constant_name_and_type tag
 				end
-				v.tag = tag
 				@class_file.constant_pool << v
 			end
 		end

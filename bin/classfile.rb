@@ -120,11 +120,20 @@ class ClassAttributeDeprecated < ClassAttribute
 end
 
 class ConstantPoolConstant
-	attr_accessor :tag
+	attr_reader :tag
+
+	def initialize tag
+		@tag = tag
+	end
 end
 
 class ConstantPoolConstantIndex1Info < ConstantPoolConstant
-	attr_accessor :index1
+	attr_reader :index1
+
+	def initialize tag, index1
+		super tag
+		@index1 = index1
+	end
 
 	def string?
 		@tag == 8
@@ -136,11 +145,21 @@ class ConstantPoolConstantIndex1Info < ConstantPoolConstant
 end
 
 class ConstantPoolConstantIndex2Info < ConstantPoolConstantIndex1Info
-	attr_accessor :index2
+	attr_reader :index2
+
+	def initialize tag, index1, index2
+		super tag, index1
+		@index2 = index2
+	end
 end
 
 class ConstantPoolConstantValueInfo < ConstantPoolConstant
-	attr_accessor :value
+	attr_reader :value
+
+	def initialize tag, value
+		super tag
+		@value = value
+	end
 end
 
 class AccessFlags
