@@ -6,7 +6,7 @@ require_relative 'interpreter'
 require_relative 'native'
 
 class Frame
-	attr_reader :jvmclass, :stack, :locals, :code_attr, :exceptions, :method
+	attr_reader :jvmclass, :stack, :locals, :code_attr, :method
 	attr_accessor :pc
 
 	def initialize jvmclass, method, params
