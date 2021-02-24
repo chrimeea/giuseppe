@@ -484,7 +484,7 @@ class Interpreter
 	end
 
 	def resolve_exception_handler exception
-		@frame.exceptions.each do |e|
+		@frame.code_attr.exception_table.each do |e|
 			if @frame.pc - 1 >= e.start_pc && @frame.pc - 1 < e.end_pc &&
 				(e.catch_type.zero? ||
 				@jvm.type_equal_or_superclass?(exception.jvmclass,

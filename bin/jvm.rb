@@ -16,7 +16,6 @@ class Frame
 		@code_attr = m.code
 		if @code_attr
 			@stack = []
-			@exceptions = code_attr.exception_table
 			p = params.reverse
 			@locals = []
 			@locals.push(p.pop) if params.size > method.args.size
@@ -97,45 +96,14 @@ end
 
 class Resolver
 	def initialize jvm
-		@classes = {}
 		@jvm = jvm
-		@loader = ClassLoader.new
-	end
-
-	def load_class class_type
-		if @classes.key? class_type
-			@classes[class_type]
-		else
-			jvmclass = JavaClass.new class_type
-			@classes[class_type] = jvmclass
-			unless jvmclass.array?
-				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
-				initialize_fields jvmclass.reference, jvmclass
-				clinit = JavaMethod.new('<clinit>', '()V')
-				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
-			end
-			jvmclass
-		end
-	end
-
-	def initialize_fields reference, jvmclass
-		static = reference.class_reference?
-		jvmclass.class_file.fields.select { |f| static == !f.access_flags.static?.nil? }.each do |f|
-			jvmfield = JavaField.new(
-					jvmclass.class_file.constant_pool[f.name_index].value,
-					jvmclass.class_file.constant_pool[f.descriptor_index].value
-			)
-			@jvm.set_field(reference, jvmclass, jvmfield, jvmfield.default_value)
-		end
-		return if static || jvmclass.class_file.super_class.zero?
-		initialize_fields(reference, load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
 	end
 
 	def resolve_field jvmclass, field
 		if jvmclass.resolved.key? field
 			jvmclass.resolved[field]
 		elsif jvmclass.class_file.super_class.nonzero?
-			jvmclass.resolved[field] = resolve_field(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
+			jvmclass.resolved[field] = resolve_field(@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
 		else
 			fail "Unknown field #{field.field_name}"
 		end
@@ -145,7 +113,7 @@ class Resolver
 		if	reference_jvmclass.class_file.access_flags.super? &&
 			method.method_name != '<init>' &&
 			type_equal_or_superclass?(reference_jvmclass.class_type, method_jvmclass.class_type)
-				resolve_method(load_class(reference_jvmclass.class_file.get_attrib_name(reference_jvmclass.class_file.super_class)), method)
+				resolve_method(@jvm.load_class(reference_jvmclass.class_file.get_attrib_name(reference_jvmclass.class_file.super_class)), method)
 		else
 			method_jvmclass
 		end
@@ -155,9 +123,9 @@ class Resolver
 		if jvmclass.resolved.key? method
 			jvmclass.resolved[method]
 		elsif jvmclass.array?
-			jvmclass.resolved[method] = resolve_method(load_class('java/lang/Object'), method)
+			jvmclass.resolved[method] = resolve_method(@jvm.load_class('java/lang/Object'), method)
 		elsif jvmclass.class_file.super_class.nonzero?
-			jvmclass.resolved[method] = resolve_method(load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
+			jvmclass.resolved[method] = resolve_method(@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
 		else
 			fail "Unknown method #{method.method_name} #{method.method_type}"
 		end
@@ -169,16 +137,16 @@ class Resolver
 			if jvmclass_b.array?
 				type_equal_or_superclass?(class_type_a[1..-1], class_type_b[1..-1])
 			else
-				jvmclass_b == load_class('java/lang/Object')
+				jvmclass_b == @jvm.load_class('java/lang/Object')
 			end
 		else
 			return true if	jvmclass_a.class_file.super_class.nonzero? &&
 							type_equal_or_superclass?(
-								load_class(jvmclass_a.class_file.get_attrib_name(jvmclass_a.class_file.super_class)),
+								@jvm.load_class(jvmclass_a.class_file.get_attrib_name(jvmclass_a.class_file.super_class)),
 								jvmclass_b
 							)
 			jvmclass_a.class_file.interfaces.each.any? do |i|
-				return true if type_equal_or_superclass?(load_class(jvmclass_a.class_file.get_attrib_name(i)), jvmclass_b)
+				return true if type_equal_or_superclass?(@jvm.load_class(jvmclass_a.class_file.get_attrib_name(i)), jvmclass_b)
 			end
 		end
 	end
@@ -204,24 +172,32 @@ class Allocator
 		stringref
 	end
 
-	def new_java_class name
-		@jvm.run_and_return(@jvm.load_class('java/lang/Class'),
-				JavaMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
-				[new_java_string(name)]
-		)
-	end
-
 	def new_java_array jvmclass, sizes
 		JavaInstanceArray.new jvmclass, sizes
 	end
 
 	def new_java_object jvmclass
-		JavaInstance.new jvmclass
+		reference = JavaInstance.new jvmclass
+		initialize_fields reference, jvmclass
+		reference
 	end
 
 	def check_array_index reference, index
 		return if index >= 0 && index < reference.values.size
 		raise JVMError, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArrayIndexOutOfBoundsException'))
+	end
+
+	def initialize_fields reference, jvmclass
+		static = reference.class_reference?
+		jvmclass.class_file.fields.select { |f| static == !f.access_flags.static?.nil? }.each do |f|
+			jvmfield = JavaField.new(
+					jvmclass.class_file.constant_pool[f.name_index].value,
+					jvmclass.class_file.constant_pool[f.descriptor_index].value
+			)
+			@jvm.set_field(reference, jvmclass, jvmfield, jvmfield.default_value)
+		end
+		return if static || jvmclass.class_file.super_class.zero?
+		initialize_fields(reference, @jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
 	end
 end
 
@@ -230,14 +206,28 @@ class JVM
 		@resolver = Resolver.new self
 		@allocator = Allocator.new self
 		@scheduler = Scheduler.new self
+		@classes = {}
+		@loader = ClassLoader.new
+	end
+
+	def load_class class_type
+		if @classes.key? class_type
+			@classes[class_type]
+		else
+			jvmclass = JavaClass.new class_type
+			@classes[class_type] = jvmclass
+			unless jvmclass.array?
+				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
+				@allocator.initialize_fields jvmclass.reference, jvmclass
+				clinit = JavaMethod.new('<clinit>', '()V')
+				run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
+			end
+			jvmclass
+		end
 	end
 
 	def frames
 		@scheduler.frames
-	end
-
-	def load_class class_type
-		@resolver.load_class class_type
 	end
 
 	def check_array_index reference, index
@@ -253,9 +243,7 @@ class JVM
 	end
 
 	def new_java_object jvmclass
-		reference = @allocator.new_java_object jvmclass
-		@resolver.initialize_fields reference, jvmclass
-		reference
+		@allocator.new_java_object jvmclass
 	end
 
 	def new_java_object_with_constructor jvmclass, method = JavaMethod.new('<init>', '()V'), params = []
@@ -269,7 +257,10 @@ class JVM
 	end
 
 	def new_java_class name
-		@allocator.new_java_class name
+		run_and_return(load_class('java/lang/Class'),
+				JavaMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
+				[new_java_string(name)]
+		)
 	end
 
 	def new_java_string value
