@@ -85,7 +85,7 @@ class Scheduler
 			"#{frame.method.method_name}"
 		end
 		if frame.code_attr
-			@jvm.loop_code frame
+			Interpreter.new(@jvm, frame).loop_code
 		else
 			send frame.method.native_name(frame.jvmclass), @jvm, frame.locals
 		end
@@ -297,9 +297,5 @@ class JVM
 
 	def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		@resolver.type_equal_or_superclass?(jvmclass_a, jvmclass_b)
-	end
-
-	def loop_code frame
-		Interpreter.new(self, frame).loop_code
 	end
 end
