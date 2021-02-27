@@ -145,6 +145,10 @@ class Interpreter
 		@frame.stack.push @frame.stack.pop.to_f
 	end
 
+	def op_f2i
+		@frame.stack.push @frame.stack.pop.to_i
+	end
+
 	def op_getstatic
 		field_index = BinaryParser.to_16bit_unsigned(
 			@frame.next_instruction,
@@ -392,6 +396,8 @@ class Interpreter
 					op_iinc
 				when 134, 135, 137, 138
 					op_i2f
+				when 136, 139, 140
+					op_f2i
 				when 145
 					op_i2b
 				when 146

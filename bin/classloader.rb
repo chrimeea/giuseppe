@@ -86,6 +86,83 @@ class ClassLoader
 		f
 	end
 
+	def read_constantvalue_attribute
+		a = ClassAttributeConstantValue.new
+		a.constantvalue_index = @parser.load_u2
+		a
+	end
+
+	def read_code_attribute
+		a = ClassAttributeCode.new
+		a.max_stack = @parser.load_u2
+		a.max_locals = @parser.load_u2
+		a.code = @parser.load_u1_array(@parser.load_u4)
+		a.exception_table = []
+		@parser.load_u2.times do
+			t = ClassAttributeCode::Table.new
+			t.start_pc = @parser.load_u2
+			t.end_pc = @parser.load_u2
+			t.handler_pc = @parser.load_u2
+			t.catch_type = @parser.load_u2
+			a.exception_table << t
+		end
+		a.attributes = load_attributes
+		a
+	end
+
+	def read_exceptions_attribute
+		a = ClassAttributeExceptions.new
+		a.exception_index_table = @parser.load_u2_array(@parser.load_u2)
+		a
+	end
+
+	def read_innerclasses_attribute
+		a = ClassAttributeInnerClasses.new
+		a.classes = []
+		@parser.load_u2.times do
+			t = ClassAttributeInnerClasses::Table.new
+			t.inner_class_info_index = @parser.load_u2
+			t.outer_class_info_index = @parser.load_u2
+			t.inner_name_index = @parser.load_u2
+			t.inner_class_access_flags = AccessFlags.new(@parser.load_u2)
+			a.classes << t
+		end
+		a
+	end
+
+	def read_sourcefile_attribute
+		a = ClassAttributeSourceFile.new
+		a.sourcefile_index = @parser.load_u2
+		a
+	end
+
+	def read_linenumber_attribute
+		a = ClassAttributeLineNumber.new
+		a.line_number_table = []
+		@parser.load_u2.times do
+			t = ClassAttributeLineNumber::Table.new
+			t.start_pc = @parser.load_u2
+			t.line_number = @parser.load_u2
+			a.line_number_table << t
+		end
+		a
+	end
+
+	def read_localvariabletable_attribute
+		a = ClassAttributeLocalVariableTable.new
+		a.local_variable_table = []
+		@parser.load_u2.times do
+			t = ClassAttributeLocalVariableTable::Table
+			t.start_pc = @parser.load_u2
+			t.length = @parser.load_u2
+			t.name_index = @parser.load_u2
+			t.descriptor_index = @parser.load_u2
+			t.index = @parser.load_u2
+			a.local_variable_table << t
+		end
+		a
+	end
+
 	def load_attributes
 		attribs = []
 		@parser.load_u2.times do
@@ -94,63 +171,21 @@ class ClassLoader
 			attribute_type = @class_file.constant_pool[attribute_name_index].value
 			case attribute_type
 			when 'ConstantValue'
-				a = ClassAttributeConstantValue.new
-				a.constantvalue_index = @parser.load_u2
+				a = read_constantvalue_attribute
 			when 'Code'
-				a = ClassAttributeCode.new
-				a.max_stack = @parser.load_u2
-				a.max_locals = @parser.load_u2
-				a.code = @parser.load_u1_array(@parser.load_u4)
-				a.exception_table = []
-				@parser.load_u2.times do
-					t = ClassAttributeCode::Table.new
-					t.start_pc = @parser.load_u2
-					t.end_pc = @parser.load_u2
-					t.handler_pc = @parser.load_u2
-					t.catch_type = @parser.load_u2
-					a.exception_table << t
-				end
-				a.attributes = load_attributes
+				a = read_code_attribute
 			when 'Exceptions'
-				a = ClassAttributeExceptions.new
-				a.exception_index_table = @parser.load_u2_array(@parser.load_u2)
+				a = read_exceptions_attribute
 			when 'InnerClasses'
-				a = ClassAttributeInnerClasses.new
-				a.classes = []
-				@parser.load_u2.times do
-					t = ClassAttributeInnerClasses::Table.new
-					t.inner_class_info_index = @parser.load_u2
-					t.outer_class_info_index = @parser.load_u2
-					t.inner_name_index = @parser.load_u2
-					t.inner_class_access_flags = AccessFlags.new(@parser.load_u2)
-					a.classes << t
-				end
+				a = read_innerclasses_attribute
 			when 'Synthetic'
 				a = ClassAttributeSyntetic.new
 			when 'SourceFile'
-				a = ClassAttributeSourceFile.new
-				a.sourcefile_index = @parser.load_u2
+				a = read_sourcefile_attribute
 			when 'LineNumberTable'
-				a = ClassAttributeLineNumber.new
-				a.line_number_table = []
-				@parser.load_u2.times do
-					t = ClassAttributeLineNumber::Table.new
-					t.start_pc = @parser.load_u2
-					t.line_number = @parser.load_u2
-					a.line_number_table << t
-				end
+				a = read_linenumber_attribute
 			when 'LocalVariableTable'
-				a = ClassAttributeLocalVariableTable.new
-				a.local_variable_table = []
-				@parser.load_u2.times do
-					t = ClassAttributeLocalVariableTable::Table
-					t.start_pc = @parser.load_u2
-					t.length = @parser.load_u2
-					t.name_index = @parser.load_u2
-					t.descriptor_index = @parser.load_u2
-					t.index = @parser.load_u2
-					a.local_variable_table << t
-				end
+				a = read_localvariabletable_attribute
 			when 'Deprecated'
 				a = ClassAttributeDeprecated.new
 			else
