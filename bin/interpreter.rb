@@ -489,6 +489,50 @@ class Interpreter
 		)
 	end
 
+	def interpret opcode
+		case opcode
+		when 0
+		when 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+			case_aconst opcode
+		when 16, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
+			case_iload opcode
+		when 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 83, 84
+			case_istore opcode
+		when 87
+			@frame.stack.pop
+		when 89
+			op_dup
+		when 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111
+			case_math opcode
+		when 120, 122
+			case_ish opcode
+		when 126, 128, 130
+			case_boolean opcode
+		when 132
+			op_iinc
+		when 133, 134, 135, 136, 137, 138, 139, 140, 141, 145, 146, 147
+			case_conversion opcode
+		when 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 198, 199
+			case_goto opcode
+		when 178, 179, 180, 181
+			case_field opcode
+		when 182, 183, 184, 185
+			op_invoke opcode
+		when 187
+			op_newobject
+		when 188, 189, 190, 197
+			case_array opcode
+		when 191
+			op_athrow
+		when 192
+			op_checkcast
+		when 193
+			op_instanceof
+		else
+			fail "Unsupported opcode #{opcode}"
+		end
+	end
+
 	def loop_code
 		$logger.debug('interpreter.rb') do
 			"#{@jvm.frames.size}, #{@frame.code_attr.code}"
@@ -500,49 +544,12 @@ class Interpreter
 					"#{@jvm.frames.size}, #{opcode}"
 				end
 				case opcode
-				when 0
-				when 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-					case_aconst opcode
-				when 16, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
-					case_iload opcode
-				when 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 83, 84
-					case_istore opcode
-				when 87
-					@frame.stack.pop
-				when 89
-					op_dup
-				when 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111
-					case_math opcode
-				when 120, 122
-					case_ish opcode
-				when 126, 128, 130
-					case_boolean opcode
-				when 132
-					op_iinc
-				when 133, 134, 135, 136, 137, 138, 139, 140, 141, 145, 146, 147
-					case_conversion opcode
-				when 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 198, 199
-					case_goto opcode
 				when 172, 176
 					return @frame.stack.pop
 				when 177
 					break
-				when 178, 179, 180, 181
-					case_field opcode
-				when 182, 183, 184, 185
-					op_invoke opcode
-				when 187
-					op_newobject
-				when 188, 189, 190, 197
-					case_array opcode
-				when 191
-					op_athrow
-				when 192
-					op_checkcast
-				when 193
-					op_instanceof
 				else
-					fail "Unsupported opcode #{opcode}"
+					interpret opcode
 				end
 			rescue JVMError => e
 				handle_exception e.exception

@@ -163,38 +163,42 @@ class ClassLoader
 		a
 	end
 
+	def load_one_attribute
+		attribute_name_index = @parser.load_u2
+		attribute_length = @parser.load_u4
+		attribute_type = @class_file.constant_pool[attribute_name_index].value
+		case attribute_type
+		when 'ConstantValue'
+			a = read_constantvalue_attribute
+		when 'Code'
+			a = read_code_attribute
+		when 'Exceptions'
+			a = read_exceptions_attribute
+		when 'InnerClasses'
+			a = read_innerclasses_attribute
+		when 'Synthetic'
+			a = ClassAttributeSyntetic.new
+		when 'SourceFile'
+			a = read_sourcefile_attribute
+		when 'LineNumberTable'
+			a = read_linenumber_attribute
+		when 'LocalVariableTable'
+			a = read_localvariabletable_attribute
+		when 'Deprecated'
+			a = ClassAttributeDeprecated.new
+		else
+			$logger.warn('classloader.rb') { "unknown attribute #{attribute_type}" }
+			a = ClassAttribute.new
+			a.info = @parser.load_u1_array(attribute_length)
+		end
+		a.attribute_name_index = attribute_name_index
+		a
+	end
+
 	def load_attributes
 		attribs = []
 		@parser.load_u2.times do
-			attribute_name_index = @parser.load_u2
-			attribute_length = @parser.load_u4
-			attribute_type = @class_file.constant_pool[attribute_name_index].value
-			case attribute_type
-			when 'ConstantValue'
-				a = read_constantvalue_attribute
-			when 'Code'
-				a = read_code_attribute
-			when 'Exceptions'
-				a = read_exceptions_attribute
-			when 'InnerClasses'
-				a = read_innerclasses_attribute
-			when 'Synthetic'
-				a = ClassAttributeSyntetic.new
-			when 'SourceFile'
-				a = read_sourcefile_attribute
-			when 'LineNumberTable'
-				a = read_linenumber_attribute
-			when 'LocalVariableTable'
-				a = read_localvariabletable_attribute
-			when 'Deprecated'
-				a = ClassAttributeDeprecated.new
-			else
-				$logger.warn('classloader.rb') { "unknown attribute #{attribute_type}" }
-				a = ClassAttribute.new
-				a.info = @parser.load_u1_array(attribute_length)
-			end
-			a.attribute_name_index = attribute_name_index
-			attribs << a
+			attribs << load_one_attribute
 		end
 		attribs
 	end
