@@ -97,7 +97,7 @@ class JavaField
 	end
 
 	def default_value
-		return 0 if ['B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'].include? @field_type
+		return 0 if %w[B C D F I J S Z].include? @field_type
 	end
 end
 

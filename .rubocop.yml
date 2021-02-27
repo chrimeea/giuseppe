@@ -26,8 +26,6 @@ Metrics/PerceivedComplexity:
   Enabled: false
 Metrics/CyclomaticComplexity:
   Enabled: false
-Metrics/BlockLength:
-  Enabled: false
 Lint/BinaryOperatorWithIdenticalOperands:
   Enabled: false
 Lint/EmptyWhen:
