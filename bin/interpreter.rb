@@ -84,6 +84,7 @@ class Interpreter
 
 	def case_conversion opcode
 		case opcode
+		when 133, 141
 		when 134, 135, 137, 138
 			op_i2f
 		when 136, 139, 140
@@ -499,7 +500,7 @@ class Interpreter
 					"#{@jvm.frames.size}, #{opcode}"
 				end
 				case opcode
-				when 0, 133, 141
+				when 0
 				when 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 					case_aconst opcode
 				when 16, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
@@ -518,7 +519,7 @@ class Interpreter
 					case_boolean opcode
 				when 132
 					op_iinc
-				when 134, 135, 136, 137, 138, 139, 140, 145, 146, 147
+				when 133, 134, 135, 136, 137, 138, 139, 140, 141, 145, 146, 147
 					case_conversion opcode
 				when 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 198, 199
 					case_goto opcode
