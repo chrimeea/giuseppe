@@ -159,6 +159,12 @@ class Interpreter
 
 	def case_iload opcode
 		case opcode
+		when 16
+			op_bipush
+		when 18
+			op_ldc
+		when 20
+			op_ldc2_wide
 		when 21, 22, 23, 24, 25
 			op_iload @frame.next_instruction
 		when 26, 30, 34, 38, 42
@@ -496,13 +502,7 @@ class Interpreter
 				when 0, 133, 141
 				when 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 					case_aconst opcode
-				when 16
-					op_bipush
-				when 18
-					op_ldc
-				when 20
-					op_ldc2_wide
-				when 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
+				when 16, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
 					case_iload opcode
 				when 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 83, 84
 					case_istore opcode
