@@ -140,11 +140,11 @@ class Resolver
 				jvmclass_b == @jvm.load_class('java/lang/Object')
 			end
 		else
-			superclass_equal(jvmclass_a, jvmclass_b)
+			superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
 		end
 	end
 
-	def superclass_equal?(jvmclass_a, jvmclass_b)
+	def superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
 		return true if
 				jvmclass_a.class_file.super_class.nonzero? &&
 				type_equal_or_superclass?(
