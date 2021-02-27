@@ -231,7 +231,7 @@ class JVM
 
 	def check_array_index reference, index
 		return if index >= 0 && index < reference.values.size
-		raise JVMError, @jvm.new_java_object_with_constructor(load_class('java/lang/ArrayIndexOutOfBoundsException'))
+		raise JVMError, new_java_object_with_constructor(load_class('java/lang/ArrayIndexOutOfBoundsException'))
 	end
 
 	def run_and_return jvmclass, method, params
