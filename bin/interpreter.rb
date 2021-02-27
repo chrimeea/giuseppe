@@ -24,9 +24,10 @@ class Interpreter
 	def op_ldc
 		index = @frame.next_instruction
 		attrib = @frame.jvmclass.class_file.constant_pool[index]
-		if attrib.is_a? ConstantPoolConstantValueInfo
+		case attrib
+		when ConstantPoolConstantValueInfo
 			@frame.stack.push attrib.value
-		elsif attrib.is_a? ConstantPoolConstantIndex1Info
+		when ConstantPoolConstantIndex1Info
 			value = @frame.jvmclass.class_file.constant_pool[attrib.index1].value
 			if attrib.string?
 				reference = @jvm.new_java_string(value)
@@ -42,8 +43,8 @@ class Interpreter
 
 	def op_ldc2_wide
 		index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		@frame.stack.push @frame.jvmclass.class_file.constant_pool[index].value
 	end
@@ -151,8 +152,8 @@ class Interpreter
 
 	def op_getstatic
 		field_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
 		field = JavaField.new(details.field_name, details.field_type)
@@ -161,8 +162,8 @@ class Interpreter
 
 	def op_putstatic
 		field_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
 		field = JavaField.new(details.field_name, details.field_type)
@@ -171,8 +172,8 @@ class Interpreter
 
 	def op_getfield
 		field_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
 		reference = @frame.stack.pop
@@ -182,8 +183,8 @@ class Interpreter
 
 	def op_putfield
 		field_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
 		value = @frame.stack.pop
@@ -194,8 +195,8 @@ class Interpreter
 
 	def op_invoke opcode
 		method_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		details = @frame.jvmclass.class_file.class_and_name_and_type(method_index)
 		method = JavaMethod.new(details.field_name, details.field_type)
@@ -207,12 +208,15 @@ class Interpreter
 		else
 			reference = @frame.stack.pop
 			params.push reference
-			if opcode == 183
-				jvmclass = @jvm.resolve_special_method(reference.jvmclass,
-					@jvm.load_class(details.class_type), method)
-			else
-				jvmclass = @jvm.resolve_method(reference.jvmclass, method)
-			end
+			jvmclass =  if opcode == 183
+							@jvm.resolve_special_method(
+									reference.jvmclass,
+									@jvm.load_class(details.class_type),
+									method
+							)
+						else
+							@jvm.resolve_method(reference.jvmclass, method)
+						end
 		end
 		if opcode == 185
 			@frame.next_instruction
@@ -223,8 +227,8 @@ class Interpreter
 
 	def op_newobject
 		class_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		@frame.stack.push @jvm.new_java_object(@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index)))
 	end
@@ -238,8 +242,8 @@ class Interpreter
 
 	def op_anewarray
 		class_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		array_type = "[#{@frame.jvmclass.class_file.get_attrib_name(class_index)}"
 		count = @frame.stack.pop
@@ -257,8 +261,8 @@ class Interpreter
 
 	def op_checkcast
 		class_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		reference = @frame.stack.last
 		if reference && !@jvm.type_equal_or_superclass?(reference.jvmclass, @jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index)))
@@ -268,8 +272,8 @@ class Interpreter
 
 	def op_instanceof
 		class_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		reference = @frame.stack.pop
 		if reference
@@ -282,8 +286,8 @@ class Interpreter
 
 	def op_multianewarray
 		class_index = BinaryParser.to_16bit_unsigned(
-			@frame.next_instruction,
-			@frame.next_instruction
+				@frame.next_instruction,
+				@frame.next_instruction
 		)
 		dimensions = @frame.next_instruction
 		counts = []
