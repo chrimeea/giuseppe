@@ -20,7 +20,7 @@ class Frame
 			@locals = []
 			@locals.push(p.pop) if params.size > method.args.size
 			method.args.each do |a|
-				if ['J', 'D'].include? a
+				if %w[J D].include? a
 					value = p.pop
 					@locals.push value
 					@locals.push value
@@ -257,7 +257,8 @@ class JVM
 	end
 
 	def new_java_class name
-		run_and_return(load_class('java/lang/Class'),
+		run_and_return(
+				load_class('java/lang/Class'),
 				JavaMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
 				[new_java_string(name)]
 		)

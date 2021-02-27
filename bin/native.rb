@@ -46,14 +46,16 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	jvm.frames.each do |f|
 		break if f.jvmclass.class_type == reference.jvmclass.class_type
 		stacktrace << jvm.new_java_object_with_constructor(
-			jvmclass,
-			JavaMethod.new('<init>',
-				'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'),
-			[jvm.new_java_string(f.jvmclass.class_type),
-				jvm.new_java_string(f.method.method_name),
-				jvm.new_java_string(f.jvmclass.class_file.source_file),
-				f.line_number]
-			)
+				jvmclass,
+				JavaMethod.new(
+						'<init>',
+						'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'
+				),
+				[jvm.new_java_string(f.jvmclass.class_type),
+					jvm.new_java_string(f.method.method_name),
+					jvm.new_java_string(f.jvmclass.class_file.source_file),
+					f.line_number]
+		)
 	end
 	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])
 	stacktrace.reverse.each_with_index { |s, i| arrayref.values[i] = s }
