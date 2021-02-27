@@ -140,14 +140,19 @@ class Resolver
 				jvmclass_b == @jvm.load_class('java/lang/Object')
 			end
 		else
-			return true if	jvmclass_a.class_file.super_class.nonzero? &&
-							type_equal_or_superclass?(
-								@jvm.load_class(jvmclass_a.class_file.get_attrib_name(jvmclass_a.class_file.super_class)),
-								jvmclass_b
-							)
-			jvmclass_a.class_file.interfaces.each.any? do |i|
-				return true if type_equal_or_superclass?(@jvm.load_class(jvmclass_a.class_file.get_attrib_name(i)), jvmclass_b)
-			end
+			superclass_equal(jvmclass_a, jvmclass_b)
+		end
+	end
+
+	def superclass_equal?(jvmclass_a, jvmclass_b)
+		return true if
+				jvmclass_a.class_file.super_class.nonzero? &&
+				type_equal_or_superclass?(
+						@jvm.load_class(jvmclass_a.class_file.get_attrib_name(jvmclass_a.class_file.super_class)),
+						jvmclass_b
+				)
+		jvmclass_a.class_file.interfaces.each.any? do |i|
+			return true if type_equal_or_superclass?(@jvm.load_class(jvmclass_a.class_file.get_attrib_name(i)), jvmclass_b)
 		end
 	end
 end
