@@ -17,6 +17,190 @@ class Interpreter
 		@frame.stack.push value
 	end
 
+	def case_array opcode
+		case opcode
+		when 188
+			op_newarray
+		when 189
+			op_anewarray
+		when 190
+			op_arraylength
+		when 197
+			op_multianewarray
+		end
+	end
+
+	def case_field opcode
+		case opcode
+		when 178
+			op_getstatic
+		when 179
+			op_putstatic
+		when 180
+			op_getfield
+		when 181
+			op_putfield
+		end
+	end
+
+	def case_goto opcode
+		case opcode
+		when 153
+			@frame.goto_if { @frame.stack.pop.zero? }
+		when 154
+			@frame.goto_if { @frame.stack.pop.nonzero? }
+		when 155
+			@frame.goto_if { @frame.stack.pop.negative? }
+		when 156
+			@frame.goto_if { @frame.stack.pop >= 0 }
+		when 157
+			@frame.goto_if { @frame.stack.pop.positive? }
+		when 158
+			@frame.goto_if { @frame.stack.pop <= 0 }
+		when 159
+			@frame.goto_if { @frame.stack.pop == @frame.stack.pop }
+		when 160
+			@frame.goto_if { @frame.stack.pop != @frame.stack.pop }
+		when 161
+			@frame.goto_if { @frame.stack.pop > @frame.stack.pop }
+		when 162
+			@frame.goto_if { @frame.stack.pop <= @frame.stack.pop }
+		when 163
+			@frame.goto_if { @frame.stack.pop < @frame.stack.pop }
+		when 164
+			@frame.goto_if { @frame.stack.pop >= @frame.stack.pop }
+		when 165
+			@frame.goto_if { @frame.stack.pop == @frame.stack.pop }
+		when 166
+			@frame.goto_if { @frame.stack.pop != @frame.stack.pop }
+		when 167
+			@frame.goto_if { true }
+		when 198
+			@frame.goto_if { @frame.stack.pop.nil? }
+		when 199
+			@frame.goto_if { @frame.stack.pop }
+		end
+	end
+
+	def case_conversion opcode
+		case opcode
+		when 134, 135, 137, 138
+			op_i2f
+		when 136, 139, 140
+			op_f2i
+		when 145
+			op_i2b
+		when 146
+			op_i2c
+		when 147
+			op_i2s
+		end
+	end
+
+	def case_boolean opcode
+		case opcode
+		when 126
+			op_iand
+		when 128
+			op_ior
+		when 130
+			op_ixor
+		end
+	end
+
+	def case_ish opcode
+		case opcode
+		when 120
+			op_ishl
+		when 122
+			op_ishr
+		end
+	end
+
+	def case_math opcode
+		case opcode
+		when 96, 97, 98, 99
+			op_iadd
+		when 100, 101, 102, 103
+			op_isub
+		when 104, 105, 106, 107
+			op_imul
+		when 108, 109, 110, 111
+			op_idiv
+		end
+	end
+
+	def case_istore opcode
+		case opcode
+		when 54, 56, 58
+			op_istore @frame.next_instruction
+		when 55, 57
+			op_lstore @frame.next_instruction
+		when 59, 67, 75
+			op_istore 0
+		when 60, 68, 76
+			op_istore 1
+		when 61, 69, 77
+			op_istore 2
+		when 62, 70, 78
+			op_istore 3
+		when 63, 71
+			op_lstore 0
+		when 64, 72
+			op_lstore 1
+		when 65, 73
+			op_lstore 2
+		when 66, 74
+			op_lstore 3
+		when 79, 83, 84
+			op_iastore
+		end
+	end
+
+	def case_iload opcode
+		case opcode
+		when 21, 22, 23, 24, 25
+			op_iload @frame.next_instruction
+		when 26, 30, 34, 38, 42
+			op_iload 0
+		when 27, 31, 35, 39, 43
+			op_iload 1
+		when 28, 32, 36, 40, 44
+			op_iload 2
+		when 29, 33, 37, 41, 45
+			op_iload 3
+		when 46, 50, 51
+			op_iaload
+		end
+	end
+
+	def case_aconst opcode
+		case opcode
+		when 1
+			op_aconst nil
+		when 2
+			op_aconst(-1)
+		when 3, 9
+			op_aconst 0
+		when 4, 10
+			op_aconst 1
+		when 5
+			op_aconst 2
+		when 6
+			op_aconst 3
+		when 7
+			op_aconst 4
+		when 8
+			op_aconst 5
+		when 11, 14
+			op_aconst 0.0
+		when 12, 15
+			op_aconst 1.0
+		when 13
+			op_aconst 2.0
+		end
+	end
+
 	def op_bipush
 		@frame.stack.push BinaryParser.to_signed(@frame.next_instruction, 1)
 	end
@@ -310,168 +494,52 @@ class Interpreter
 				end
 				case opcode
 				when 0, 133, 141
-				when 1
-					op_aconst nil
-				when 2
-					op_aconst(-1)
-				when 3, 9
-					op_aconst 0
-				when 4, 10
-					op_aconst 1
-				when 5
-					op_aconst 2
-				when 6
-					op_aconst 3
-				when 7
-					op_aconst 4
-				when 8
-					op_aconst 5
-				when 11, 14
-					op_aconst 0.0
-				when 12, 15
-					op_aconst 1.0
-				when 13
-					op_aconst 2.0
+				when 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+					case_aconst opcode
 				when 16
 					op_bipush
 				when 18
 					op_ldc
 				when 20
 					op_ldc2_wide
-				when 21, 22, 23, 24, 25
-					op_iload @frame.next_instruction
-				when 55, 57
-					op_lstore @frame.next_instruction
-				when 26, 30, 34, 38, 42
-					op_iload 0
-				when 27, 31, 35, 39, 43
-					op_iload 1
-				when 28, 32, 36, 40, 44
-					op_iload 2
-				when 29, 33, 37, 41, 45
-					op_iload 3
-				when 46, 50, 51
-					op_iaload
-				when 54, 56, 58
-					op_istore @frame.next_instruction
-				when 59, 67, 75
-					op_istore 0
-				when 60, 68, 76
-					op_istore 1
-				when 61, 69, 77
-					op_istore 2
-				when 62, 70, 78
-					op_istore 3
-				when 63, 71
-					op_lstore 0
-				when 64, 72
-					op_lstore 1
-				when 65, 73
-					op_lstore 2
-				when 66, 74
-					op_lstore 3
-				when 79, 83, 84
-					op_iastore
+				when 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
+					case_iload opcode
+				when 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 83, 84
+					case_istore opcode
 				when 87
 					@frame.stack.pop
 				when 89
 					op_dup
-				when 96, 97, 98, 99
-					op_iadd
-				when 100, 101, 102, 103
-					op_isub
-				when 104, 105, 106, 107
-					op_imul
-				when 108, 109, 111
-					op_idiv
-				when 110
-					op_idiv
-				when 120
-					op_ishl
-				when 122
-					op_ishr
-				when 126
-					op_iand
-				when 128
-					op_ior
-				when 130
-					op_ixor
+				when 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111
+					case_math opcode
+				when 120, 122
+					case_ish opcode
+				when 126, 128, 130
+					case_boolean opcode
 				when 132
 					op_iinc
-				when 134, 135, 137, 138
-					op_i2f
-				when 136, 139, 140
-					op_f2i
-				when 145
-					op_i2b
-				when 146
-					op_i2c
-				when 147
-					op_i2s
-				when 153
-					@frame.goto_if { @frame.stack.pop.zero? }
-				when 154
-					@frame.goto_if { @frame.stack.pop.nonzero? }
-				when 155
-					@frame.goto_if { @frame.stack.pop.negative? }
-				when 156
-					@frame.goto_if { @frame.stack.pop >= 0 }
-				when 157
-					@frame.goto_if { @frame.stack.pop.positive? }
-				when 158
-					@frame.goto_if { @frame.stack.pop <= 0 }
-				when 159
-					@frame.goto_if { @frame.stack.pop == @frame.stack.pop }
-				when 160
-					@frame.goto_if { @frame.stack.pop != @frame.stack.pop }
-				when 161
-					@frame.goto_if { @frame.stack.pop > @frame.stack.pop }
-				when 162
-					@frame.goto_if { @frame.stack.pop <= @frame.stack.pop }
-				when 163
-					@frame.goto_if { @frame.stack.pop < @frame.stack.pop }
-				when 164
-					@frame.goto_if { @frame.stack.pop >= @frame.stack.pop }
-				when 165
-					@frame.goto_if { @frame.stack.pop == @frame.stack.pop }
-				when 166
-					@frame.goto_if { @frame.stack.pop != @frame.stack.pop }
-				when 167
-					@frame.goto_if { true }
+				when 134, 135, 136, 137, 138, 139, 140, 145, 146, 147
+					case_conversion opcode
+				when 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 198, 199
+					case_goto opcode
 				when 172, 176
 					return @frame.stack.pop
 				when 177
 					break
-				when 178
-					op_getstatic
-				when 179
-					op_putstatic
-				when 180
-					op_getfield
-				when 181
-					op_putfield
+				when 178, 179, 180, 181
+					case_field opcode
 				when 182, 183, 184, 185
 					op_invoke opcode
 				when 187
 					op_newobject
-				when 188
-					op_newarray
-				when 189
-					op_anewarray
-				when 190
-					op_arraylength
+				when 188, 189, 190, 197
+					case_array opcode
 				when 191
 					op_athrow
 				when 192
 					op_checkcast
 				when 193
 					op_instanceof
-				when 197
-					op_multianewarray
-				when 198
-					@frame.goto_if { @frame.stack.pop.nil? }
-				when 199
-					@frame.goto_if { @frame.stack.pop }
 				else
 					fail "Unsupported opcode #{opcode}"
 				end
