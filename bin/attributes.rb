@@ -1,89 +1,61 @@
-# frozen_string_literal: true
+class ClassAttribute
+	attr_accessor :attribute_name_index, :info
+end
 
-require_relative 'classfile'
+class ClassAttributeConstantValue < ClassAttribute
+	attr_accessor :constantvalue_index
+end
 
-class ClassLoader
-	def read_constant_utf8 tag
-		ConstantPoolConstantValueInfo.new tag, @parser.load_string(@parser.load_u2)
+class ClassAttributeCode < ClassAttribute
+	attr_accessor :max_stack, :max_locals, :code, :exception_table, :attributes
+
+	class Table
+		attr_accessor :start_pc, :end_pc, :handler_pc, :catch_type
 	end
+end
 
-	def read_constant_int_or_float tag
-		value = @parser.load_u4
-		if tag == 4
-			s = if (value >> 31).zero? then 1 else -1 end
-			e = (value >> 23) & 0xff
-			m = if e.zero? then (value & 0x7fffff) << 1 else (value & 0x7fffff) | 0x800000 end
-			value = (s * m * 2**(e - 150)).to_f
-		else
-			value = BinaryParser.to_signed(value, 4)
-		end
-		ConstantPoolConstantValueInfo.new tag, value
+class ClassAttributeExceptions < ClassAttribute
+	attr_accessor :exception_index_table
+end
+
+class ClassAttributeInnerClasses < ClassAttribute
+	attr_accessor :classes
+
+	class Table
+		attr_accessor :inner_class_info_index, :outer_class_info_index, :inner_name_index, :inner_class_access_flags
 	end
+end
 
-	def read_constant_long_or_double tag
-		high_bytes = @parser.load_u4
-		low_bytes = @parser.load_u4
-		value = (high_bytes << 32) + low_bytes
-		if tag == 6
-			s = if (value >> 63).zero? then 1 else -1 end
-			e = (value >> 52) & 0x7ff
-			m = if e.zero? then (value & 0xfffffffffffff) << 1 else (value & 0xfffffffffffff) | 0x10000000000000 end
-			value = (s * m * 2**(e - 1075)).to_f
-		else
-			value = BinaryParser.to_signed(value, 8)
-		end
-		ConstantPoolConstantValueInfo.new tag, value
+class ClassAttributeSyntetic < ClassAttribute
+end
+
+class ClassAttributeSourceFile < ClassAttribute
+	attr_accessor :sourcefile_index
+end
+
+class ClassAttributeLineNumber < ClassAttribute
+	attr_accessor :line_number_table
+
+	class Table
+		attr_accessor :start_pc, :line_number
 	end
+end
 
-	def read_constant_string tag
-		ConstantPoolConstantIndex1Info.new tag, @parser.load_u2
+class ClassAttributeLocalVariableTable < ClassAttribute
+	attr_accessor :local_variable_table
+
+	class Table
+		attr_accessor :start_pc, :length, :name_index, :descriptor_index, :index
 	end
+end
 
-	def read_constant_name_and_type tag
-		ConstantPoolConstantIndex2Info.new tag, @parser.load_u2, @parser.load_u2
-	end
+class ClassAttributeDeprecated < ClassAttribute
+end
 
-	def load_constant_pool
-		constant_pool_count = @parser.load_u2 - 1
-		tag = nil
-		constant_pool_count.times do
-			if [5, 6].include? tag
-				@class_file.constant_pool << nil
-				tag = nil
-			else
-				tag = @parser.load_u1
-				case tag
-				when 1
-					v = read_constant_utf8 tag
-				when 3, 4
-					v = read_constant_int_or_float tag
-				when 5, 6
-					v = read_constant_long_or_double tag
-				when 7, 8
-					v = read_constant_string tag
-				when 9, 10, 11, 12
-					v = read_constant_name_and_type tag
-				end
-				@class_file.constant_pool << v
-			end
-		end
-	end
-
-	def load_interfaces
-		@parser.load_u2_array(@parser.load_u2)
-	end
-
-	def load_fields
-		f = []
-		@parser.load_u2.times do
-			c = ClassField.new
-			c.access_flags = AccessFlags.new(@parser.load_u2)
-			c.name_index = @parser.load_u2
-			c.descriptor_index = @parser.load_u2
-			c.attributes = load_attributes
-			f << c
-		end
-		f
+class AttributeLoader
+	def initialize parser, class_file
+		@parser = parser
+		@class_file = class_file
 	end
 
 	def read_constantvalue_attribute
@@ -106,7 +78,7 @@ class ClassLoader
 			t.catch_type = @parser.load_u2
 			a.exception_table << t
 		end
-		a.attributes = load_attributes
+		a.attributes = load
 		a
 	end
 
@@ -195,33 +167,11 @@ class ClassLoader
 		a
 	end
 
-	def load_attributes
+	def load
 		attribs = []
 		@parser.load_u2.times do
 			attribs << load_one_attribute
 		end
 		attribs
-	end
-
-	def load_file name
-		$logger.info "Loading #{name}"
-		@class_file = ClassFile.new
-		@parser = BinaryParser.new IO.binread(name)
-		@class_file.magic = @parser.load_u4
-		@class_file.minor_version = @parser.load_u2
-		@class_file.major_version = @parser.load_u2
-		load_constant_pool
-		@class_file.access_flags = AccessFlags.new(@parser.load_u2)
-		@class_file.this_class = @parser.load_u2
-		@class_file.super_class = @parser.load_u2
-		@class_file.interfaces = load_interfaces
-		@class_file.fields = load_fields
-		@class_file.methods = load_fields
-		@class_file.attributes = load_attributes
-		@class_file
-	end
-
-	def class_path class_type
-		"#{class_type}.class"
 	end
 end

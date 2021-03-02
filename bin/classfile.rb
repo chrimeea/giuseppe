@@ -1,166 +1,9 @@
-class BinaryParser
-	def initialize contents
-		@i = 0
-		@contents = contents
-	end
+# frozen_string_literal: true
 
-	def load_u1
-		u1 = @contents.byteslice(@i, 1).unpack1 'C'
-		@i += 1
-		u1
-	end
-
-	def load_u1_array length
-		a = @contents.byteslice(@i, length).unpack 'C*'
-		@i += length
-		a
-	end
-
-	def load_u2
-		u2 = @contents.byteslice(@i, 2).unpack1 'S>'
-		@i += 2
-		u2
-	end
-
-	def load_u2_array length
-		a = @contents.byteslice(@i, 2 * length).unpack 'S>*'
-		@i += 2 * length
-		a
-	end
-
-	def load_u4
-		u4 = @contents.byteslice(@i, 4).unpack1 'L>'
-		@i += 4
-		u4
-	end
-
-	def load_string length
-		s = @contents.byteslice(@i, length).unpack1 'a*'
-		@i += length
-		s
-	end
-
-	def self.to_16bit_unsigned(byte1, byte2)
-		(byte1 << 8) | byte2
-	end
-
-	def self.trunc_to(value, count)
-		value.modulo 2**(8 * count)
-	end
-
-	def self.to_signed(value, count)
-		n = 2**(8 * count)
-		sign = value & (n / 2)
-		value -= n if sign.nonzero?
-		value
-	end
-end
-
-class ClassField
-	attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
-
-	def code
-		i = attributes.index { |a| a.is_a? ClassAttributeCode }
-		attributes[i] if i
-	end
-end
-
-class ClassAttribute
-	attr_accessor :attribute_name_index, :info
-end
-
-class ClassAttributeConstantValue < ClassAttribute
-	attr_accessor :constantvalue_index
-end
-
-class ClassAttributeCode < ClassAttribute
-	attr_accessor :max_stack, :max_locals, :code, :exception_table, :attributes
-
-	class Table
-		attr_accessor :start_pc, :end_pc, :handler_pc, :catch_type
-	end
-end
-
-class ClassAttributeExceptions < ClassAttribute
-	attr_accessor :exception_index_table
-end
-
-class ClassAttributeInnerClasses < ClassAttribute
-	attr_accessor :classes
-
-	class Table
-		attr_accessor :inner_class_info_index, :outer_class_info_index, :inner_name_index, :inner_class_access_flags
-	end
-end
-
-class ClassAttributeSyntetic < ClassAttribute
-end
-
-class ClassAttributeSourceFile < ClassAttribute
-	attr_accessor :sourcefile_index
-end
-
-class ClassAttributeLineNumber < ClassAttribute
-	attr_accessor :line_number_table
-
-	class Table
-		attr_accessor :start_pc, :line_number
-	end
-end
-
-class ClassAttributeLocalVariableTable < ClassAttribute
-	attr_accessor :local_variable_table
-
-	class Table
-		attr_accessor :start_pc, :length, :name_index, :descriptor_index, :index
-	end
-end
-
-class ClassAttributeDeprecated < ClassAttribute
-end
-
-class ConstantPoolConstant
-	attr_reader :tag
-
-	def initialize tag
-		@tag = tag
-	end
-end
-
-class ConstantPoolConstantIndex1Info < ConstantPoolConstant
-	attr_reader :index1
-
-	def initialize tag, index1
-		super tag
-		@index1 = index1
-	end
-
-	def string?
-		@tag == 8
-	end
-
-	def class?
-		@tag == 7
-	end
-end
-
-class ConstantPoolConstantIndex2Info < ConstantPoolConstantIndex1Info
-	attr_reader :index2
-
-	def initialize tag, index1, index2
-		super tag, index1
-		@index2 = index2
-	end
-end
-
-class ConstantPoolConstantValueInfo < ConstantPoolConstant
-	attr_reader :value
-
-	def initialize tag, value
-		super tag
-		@value = value
-	end
-end
+require_relative 'parser'
+require_relative 'constantpool'
+require_relative 'attributes'
+require_relative 'fields'
 
 class AccessFlags
 	def initialize access_flags
@@ -251,5 +94,40 @@ class ClassFile
 		field_name = @constant_pool[attrib.index1].value
 		field_type = @constant_pool[attrib.index2].value
 		Struct.new(:class_type, :field_name, :field_type).new(class_type, field_name, field_type)
+	end
+end
+
+class ClassLoader
+	def initialize class_type
+		@name = class_path class_type
+		@class_file = ClassFile.new
+		@parser = BinaryParser.new IO.binread(@name)
+		@attribute_loader = AttributeLoader.new(@parser, @class_file)
+		@field_loader = FieldLoader.new(@parser, @attribute_loader)
+		@pool_loader = ConstantPoolLoader.new(@parser)
+	end
+
+	def load_interfaces
+		@parser.load_u2_array(@parser.load_u2)
+	end
+
+	def load
+		$logger.info "Loading #{@name}"
+		@class_file.magic = @parser.load_u4
+		@class_file.minor_version = @parser.load_u2
+		@class_file.major_version = @parser.load_u2
+		@class_file.constant_pool = @pool_loader.load
+		@class_file.access_flags = AccessFlags.new(@parser.load_u2)
+		@class_file.this_class = @parser.load_u2
+		@class_file.super_class = @parser.load_u2
+		@class_file.interfaces = load_interfaces
+		@class_file.fields = @field_loader.load
+		@class_file.methods = @field_loader.load
+		@class_file.attributes = @attribute_loader.load
+		@class_file
+	end
+
+	def class_path class_type
+		"#{class_type}.class"
 	end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'classloader'
+require_relative 'classfile'
 require_relative 'language'
 require_relative 'interpreter'
 require_relative 'native'
@@ -161,7 +161,6 @@ class Allocator
 	def initialize jvm
 		@jvm = jvm
 		@classes = {}
-		@loader = ClassLoader.new
 	end
 
 	def java_to_native_string reference
@@ -209,7 +208,7 @@ class Allocator
 			jvmclass = JavaClass.new(JavaInstance.new, class_type)
 			@classes[class_type] = jvmclass
 			unless jvmclass.array?
-				jvmclass.class_file = @loader.load_file(@loader.class_path(class_type))
+				jvmclass.class_file = ClassLoader.new(class_type).load
 				initialize_fields jvmclass.reference, jvmclass
 				clinit = JavaMethod.new('<clinit>', '()V')
 				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
