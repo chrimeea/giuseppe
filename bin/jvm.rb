@@ -39,16 +39,6 @@ class Frame
 		@code_attr.code.nil?
 	end
 
-	def goto_if
-		@pc +=	if yield
-					BinaryParser.to_signed(
-						BinaryParser.to_16bit_unsigned(
-							@code_attr.code[@pc], @code_attr.code[@pc + 1]), 2) - 1
-				else
-					2
-				end
-	end
-
 	def next_instruction
 		@pc += 1
 		@code_attr.code[@pc - 1]

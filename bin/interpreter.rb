@@ -332,42 +332,52 @@ class Interpreter
 		end
 	end
 
+	def goto_if
+		@frame.pc += if yield
+						BinaryParser.to_signed(
+						BinaryParser.to_16bit_unsigned(
+							@frame.code_attr.code[@frame.pc], @frame.code_attr.code[@frame.pc + 1]), 2) - 1
+					else
+						2
+					end
+	end
+
 	def case_goto opcode
 		case opcode
 		when 153
-			@frame.goto_if { @frame.stack.pop.zero? }
+			goto_if { @frame.stack.pop.zero? }
 		when 154
-			@frame.goto_if { @frame.stack.pop.nonzero? }
+			goto_if { @frame.stack.pop.nonzero? }
 		when 155
-			@frame.goto_if { @frame.stack.pop.negative? }
+			goto_if { @frame.stack.pop.negative? }
 		when 156
-			@frame.goto_if { @frame.stack.pop >= 0 }
+			goto_if { @frame.stack.pop >= 0 }
 		when 157
-			@frame.goto_if { @frame.stack.pop.positive? }
+			goto_if { @frame.stack.pop.positive? }
 		when 158
-			@frame.goto_if { @frame.stack.pop <= 0 }
+			goto_if { @frame.stack.pop <= 0 }
 		when 159
-			@frame.goto_if { @frame.stack.pop == @frame.stack.pop }
+			goto_if { @frame.stack.pop == @frame.stack.pop }
 		when 160
-			@frame.goto_if { @frame.stack.pop != @frame.stack.pop }
+			goto_if { @frame.stack.pop != @frame.stack.pop }
 		when 161
-			@frame.goto_if { @frame.stack.pop > @frame.stack.pop }
+			goto_if { @frame.stack.pop > @frame.stack.pop }
 		when 162
-			@frame.goto_if { @frame.stack.pop <= @frame.stack.pop }
+			goto_if { @frame.stack.pop <= @frame.stack.pop }
 		when 163
-			@frame.goto_if { @frame.stack.pop < @frame.stack.pop }
+			goto_if { @frame.stack.pop < @frame.stack.pop }
 		when 164
-			@frame.goto_if { @frame.stack.pop >= @frame.stack.pop }
+			goto_if { @frame.stack.pop >= @frame.stack.pop }
 		when 165
-			@frame.goto_if { @frame.stack.pop == @frame.stack.pop }
+			goto_if { @frame.stack.pop == @frame.stack.pop }
 		when 166
-			@frame.goto_if { @frame.stack.pop != @frame.stack.pop }
+			goto_if { @frame.stack.pop != @frame.stack.pop }
 		when 167
-			@frame.goto_if { true }
+			goto_if { true }
 		when 198
-			@frame.goto_if { @frame.stack.pop.nil? }
+			goto_if { @frame.stack.pop.nil? }
 		when 199
-			@frame.goto_if { @frame.stack.pop }
+			goto_if { @frame.stack.pop }
 		end
 	end
 
