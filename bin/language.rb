@@ -119,7 +119,7 @@ class JavaMethod
 	end
 
 	def parse_type_descriptors
-		pattern = @method_type.match(/^\(([^\)]*)\)(.+)$/)
+		pattern = @method_type.match(/^\(([^)]*)\)(.+)$/)
 		descriptors = pattern[1]
 		i = 0
 		@args = []

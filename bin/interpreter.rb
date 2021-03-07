@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class JVMError < StandardError
 	attr_reader :exception
 
@@ -208,7 +210,7 @@ class Operations
 		else
 			reference = @frame.stack.pop
 			params.push reference
-			jvmclass =  if opcode == 183
+			jvmclass = if opcode == 183
 							@jvm.resolve_special_method(
 									reference.jvmclass,
 									@jvm.load_class(details.class_type),
@@ -265,9 +267,12 @@ class Operations
 				@frame.next_instruction
 		)
 		reference = @frame.stack.last
-		if reference && !@jvm.type_equal_or_superclass?(reference.jvmclass, @jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index)))
-			raise JVMError, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ClassCastException'))
-		end
+		return unless reference &&
+				!@jvm.type_equal_or_superclass?(
+						reference.jvmclass,
+						@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index))
+				)
+		raise JVMError, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ClassCastException'))
 	end
 
 	def op_instanceof

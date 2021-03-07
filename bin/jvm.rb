@@ -93,17 +93,30 @@ class Resolver
 		if jvmclass.resolved.key? field
 			jvmclass.resolved[field]
 		elsif jvmclass.class_file.super_class.nonzero?
-			jvmclass.resolved[field] = resolve_field(@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), field)
+			jvmclass.resolved[field] = resolve_field(
+					@jvm.load_class(
+							jvmclass.class_file.get_attrib_name(
+									jvmclass.class_file.super_class
+							)
+					),
+					field
+			)
 		else
 			fail "Unknown field #{field.field_name}"
 		end
 	end
 
 	def resolve_special_method reference_jvmclass, method_jvmclass, method
-		if	reference_jvmclass.class_file.access_flags.super? &&
+		if reference_jvmclass.class_file.access_flags.super? &&
 			method.method_name != '<init>' &&
 			type_equal_or_superclass?(reference_jvmclass.class_type, method_jvmclass.class_type)
-				resolve_method(@jvm.load_class(reference_jvmclass.class_file.get_attrib_name(reference_jvmclass.class_file.super_class)), method)
+			resolve_method(
+					@jvm.load_class(
+							reference_jvmclass.class_file.get_attrib_name(
+									reference_jvmclass.class_file.super_class)
+					),
+					method
+			)
 		else
 			method_jvmclass
 		end
@@ -115,7 +128,10 @@ class Resolver
 		elsif jvmclass.array?
 			jvmclass.resolved[method] = resolve_method(@jvm.load_class('java/lang/Object'), method)
 		elsif jvmclass.class_file.super_class.nonzero?
-			jvmclass.resolved[method] = resolve_method(@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)), method)
+			jvmclass.resolved[method] = resolve_method(
+					@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)),
+					method
+			)
 		else
 			fail "Unknown method #{method.method_name} #{method.method_type}"
 		end
