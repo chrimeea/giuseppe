@@ -200,10 +200,11 @@ class Allocator
 
 	def initialize_fields_for reference, jvmclass
 		static = reference.class_reference?
-		jvmclass.class_file.fields.select { |f| static == !f.access_flags.static?.nil? }.each do |f|
-			jvmfield = jvmclass.load_java_field f
-			@jvm.set_field(reference, jvmclass, jvmfield, jvmfield.default_value)
-		end
+		jvmclass.class_file
+				.fields
+				.select { |f| static == !f.access_flags.static?.nil? }
+				.map(&jvmclass.method(:load_java_field))
+				.each { |f| @jvm.set_field(reference, jvmclass, f, f.default_value) }
 		return if static || jvmclass.class_file.super_class.zero?
 		initialize_fields_for(reference, load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
 	end
