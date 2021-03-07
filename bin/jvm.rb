@@ -10,33 +10,34 @@ class Frame
 	attr_accessor :pc
 
 	def initialize jvmclass, method, params
-		@jvmclass = jvmclass
 		m = jvmclass.methods[method]
 		fail "Unknown method #{method.method_name}" unless m
-		@code_attr = m.code
-		if @code_attr
-			@stack = []
-			p = params.reverse
-			@locals = []
-			@locals.push(p.pop) if params.size > method.args.size
-			method.args.each do |a|
-				if %w[J D].include? a
-					value = p.pop
-					@locals.push value
-					@locals.push value
-				else
-					@locals.push p.pop
-				end
-			end
-		else
-			@locals = params
-		end
+		@jvmclass = jvmclass
 		@method = method
 		@pc = 0
+		@code_attr = m.code
+		if native?
+			@locals = params
+		else
+			@stack = []
+			@locals = []
+			save_into_locals params
+		end
+	end
+
+	def save_into_locals params
+		fail if params.size > @method.args.size + 1
+		p = params.reverse
+		@locals.push(p.pop) if params.size == @method.args.size + 1
+		@method.args.each do |a|
+			value = p.pop
+			@locals.push value
+			@locals.push value if %w[J D].include? a
+		end
 	end
 
 	def native?
-		@code_attr.code.nil?
+		@code_attr.nil?
 	end
 
 	def next_instruction
@@ -126,7 +127,10 @@ class Resolver
 		if jvmclass.resolved.key? method
 			jvmclass.resolved[method]
 		elsif jvmclass.array?
-			jvmclass.resolved[method] = resolve_method(@jvm.load_class('java/lang/Object'), method)
+			jvmclass.resolved[method] = resolve_method(
+					@jvm.load_class('java/lang/Object'),
+					method
+			)
 		elsif jvmclass.class_file.super_class.nonzero?
 			jvmclass.resolved[method] = resolve_method(
 					@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)),
@@ -190,21 +194,18 @@ class Allocator
 
 	def new_java_object jvmclass
 		reference = JavaInstance.new jvmclass
-		initialize_fields reference, jvmclass
+		initialize_fields_for reference, jvmclass
 		reference
 	end
 
-	def initialize_fields reference, jvmclass
+	def initialize_fields_for reference, jvmclass
 		static = reference.class_reference?
 		jvmclass.class_file.fields.select { |f| static == !f.access_flags.static?.nil? }.each do |f|
-			jvmfield = JavaField.new(
-					jvmclass.class_file.constant_pool[f.name_index].value,
-					jvmclass.class_file.constant_pool[f.descriptor_index].value
-			)
+			jvmfield = jvmclass.load_java_field f
 			@jvm.set_field(reference, jvmclass, jvmfield, jvmfield.default_value)
 		end
 		return if static || jvmclass.class_file.super_class.zero?
-		initialize_fields(reference, load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
+		initialize_fields_for(reference, load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
 	end
 
 	def load_class class_type
@@ -215,7 +216,7 @@ class Allocator
 			@classes[class_type] = jvmclass
 			unless jvmclass.array?
 				jvmclass.class_file = ClassLoader.new(class_type).load
-				initialize_fields jvmclass.reference, jvmclass
+				initialize_fields_for jvmclass.reference, jvmclass
 				clinit = JavaMethod.new('<clinit>', '()V')
 				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
 			end

@@ -51,7 +51,7 @@ class JavaClass
 	def class_file= value
 		@class_file = value
 		value.fields.each do |f|
-			field = JavaField.new(value.constant_pool[f.name_index].value, value.constant_pool[f.descriptor_index].value)
+			field = load_java_field f
 			@fields[field] = f
 			@resolved[field] = self
 		end
@@ -60,6 +60,13 @@ class JavaClass
 			@methods[method] = m
 			@resolved[method] = self
 		end
+	end
+
+	def load_java_field field_attrib
+		JavaField.new(
+				@class_file.constant_pool[field_attrib.name_index].value,
+				@class_file.constant_pool[field_attrib.descriptor_index].value
+		)
 	end
 
 	def element_type
