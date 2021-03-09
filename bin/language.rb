@@ -69,8 +69,12 @@ class JavaClass
 		)
 	end
 
+	def primitive?
+		%w[B C D F I J S Z].include? @class_type
+	end
+
 	def element_type
-		t = @class_type.gsub('[', '')
+		t = @class_type.delete('[')
 		if t[0] == 'L'
 			t[1..-2]
 		else

@@ -110,7 +110,7 @@ class Resolver
 	def resolve_special_method reference_jvmclass, method_jvmclass, method
 		if reference_jvmclass.class_file.access_flags.super? &&
 			method.method_name != '<init>' &&
-			type_equal_or_superclass?(reference_jvmclass.class_type, method_jvmclass.class_type)
+			type_equal_or_superclass?(reference_jvmclass, method_jvmclass)
 			resolve_method(
 					@jvm.load_class(
 							reference_jvmclass.class_file.get_attrib_name(
@@ -143,9 +143,14 @@ class Resolver
 
 	def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		return true if jvmclass_a.class_type == jvmclass_b.class_type
-		if jvmclass_a.array?
+		if jvmclass_a.primitive?
+			jvmclass_b == @jvm.load_class('java/lang/Object')
+		elsif jvmclass_a.array?
 			if jvmclass_b.array?
-				type_equal_or_superclass?(class_type_a[1..-1], class_type_b[1..-1])
+				return false if jvmclass_a.dimensions != jvmclass_b.dimensions
+				jvmclass_a = @jvm.load_class class_type_a.element_type
+				jvmclass_b = @jvm.load_class class_type_b.element_type
+				type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 			else
 				jvmclass_b == @jvm.load_class('java/lang/Object')
 			end
@@ -215,7 +220,7 @@ class Allocator
 		else
 			jvmclass = JavaClass.new(JavaInstance.new, class_type)
 			@classes[class_type] = jvmclass
-			unless jvmclass.array?
+			unless jvmclass.array? || jvmclass.primitive?
 				jvmclass.class_file = ClassLoader.new(class_type).load
 				initialize_fields_for jvmclass.reference, jvmclass
 				clinit = JavaMethod.new('<clinit>', '()V')

@@ -7,4 +7,8 @@ public class Integer {
 	public Integer(int i) {}
 
 	public static native int parseInt(String s);
+
+	public static Integer valueOf(int i) {
+		return new Integer(i);
+	}
 }
