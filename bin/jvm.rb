@@ -110,11 +110,13 @@ class Resolver
 	def resolve_special_method reference_jvmclass, method_jvmclass, method
 		if reference_jvmclass.class_file.access_flags.super? &&
 			method.method_name != '<init>' &&
+			reference_jvmclass != method_jvmclass &&
 			type_equal_or_superclass?(reference_jvmclass, method_jvmclass)
 			resolve_method(
 					@jvm.load_class(
 							reference_jvmclass.class_file.get_attrib_name(
-									reference_jvmclass.class_file.super_class)
+									reference_jvmclass.class_file.super_class
+							)
 					),
 					method
 			)
