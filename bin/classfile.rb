@@ -82,11 +82,6 @@ class ClassFile
 		@constant_pool[@constant_pool[index].index1].value
 	end
 
-	def source_file
-		a = @attributes.find { |attrib| attrib.is_a? ClassAttributeSourceFile }
-		@constant_pool[a.sourcefile_index].value if a
-	end
-
 	def class_and_name_and_type index
 		attrib = @constant_pool[index]
 		class_type = get_attrib_name(attrib.index1)

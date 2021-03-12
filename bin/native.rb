@@ -53,7 +53,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 				),
 				[jvm.new_java_string(f.jvmclass.class_type),
 					jvm.new_java_string(f.method.method_name),
-					jvm.new_java_string(f.jvmclass.class_file.source_file),
+					jvm.new_java_string(f.jvmclass.source_file),
 					f.line_number]
 		)
 	end
