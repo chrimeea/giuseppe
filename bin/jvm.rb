@@ -104,7 +104,7 @@ class Resolver
 	end
 
 	def resolve_special_method reference_jvmclass, method_jvmclass, method
-		if reference_jvmclass.class_file.access_flags.super? &&
+		if reference_jvmclass.access_flags.super? &&
 			method.method_name != '<init>' &&
 			reference_jvmclass != method_jvmclass &&
 			type_equal_or_superclass?(reference_jvmclass, method_jvmclass)
@@ -203,9 +203,7 @@ class Allocator
 	def initialize_fields_for reference, jvmclass
 		static = reference.class_reference?
 		jvmclass.fields
-				.values
 				.select { |f| static == !f.access_flags.static?.nil? }
-				.map(&jvmclass.method(:load_java_field))
 				.each { |f| @jvm.set_field(reference, jvmclass, f, f.default_value) }
 		return if static || jvmclass.super_class.nil?
 		initialize_fields_for(reference, load_class(jvmclass.super_class))

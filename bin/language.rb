@@ -37,15 +37,75 @@ class JavaInstanceArray < JavaInstance
 	end
 end
 
+class AccessFlags
+	def initialize access_flags
+		@access_flags = access_flags
+	end
+
+	def public?
+		(@access_flags & 0x0001).nonzero?
+	end
+
+	def private?
+		(@access_flags & 0x0002).nonzero?
+	end
+
+	def protected?
+		(@access_flags & 0x0004).nonzero?
+	end
+
+	def static?
+		(@access_flags & 0x0008).nonzero?
+	end
+
+	def final?
+		(@access_flags & 0x0010).nonzero?
+	end
+
+	def synchronized?
+		(@access_flags & 0x0020).nonzero?
+	end
+
+	def volatile?
+		(@access_flags & 0x0040).nonzero?
+	end
+
+	def transient?
+		(@access_flags & 0x0080).nonzero?
+	end
+
+	def native?
+		(@access_flags & 0x0100).nonzero?
+	end
+
+	def interface?
+		(@access_flags & 0x0200).nonzero?
+	end
+
+	def abstract?
+		(@access_flags & 0x0400).nonzero?
+	end
+
+	def strict?
+		(@access_flags & 0x0800).nonzero?
+	end
+
+	def inspect
+		@access_flags.to_s(2)
+	end
+
+	alias super? synchronized?
+end
+
 class JavaClass
 	attr_reader :class_type, :reference, :resolved, :class_file, :fields,
-			:methods, :source_file, :super_class
+			:methods, :source_file, :super_class, :access_flags
 
 	def initialize reference, class_type
 		@class_type = class_type
 		@reference = reference
 		@resolved = {}
-		@fields = {}
+		@fields = []
 		@methods = {}
 	end
 
@@ -53,9 +113,10 @@ class JavaClass
 		@class_file = value
 		set_source_file
 		set_super_class
+		@access_flags = AccessFlags.new @class_file.access_flags
 		value.fields.each do |f|
 			field = load_java_field f
-			@fields[field] = f
+			@fields << field
 			@resolved[field] = self
 		end
 		value.methods.each do |m|
@@ -66,10 +127,12 @@ class JavaClass
 	end
 
 	def load_java_field field_attrib
-		JavaField.new(
+		field = JavaField.new(
 				@class_file.constant_pool[field_attrib.name_index].value,
 				@class_file.constant_pool[field_attrib.descriptor_index].value
 		)
+		field.access_flags = AccessFlags.new field_attrib.access_flags
+		field
 	end
 
 	def set_super_class
@@ -106,6 +169,7 @@ end
 
 class JavaField
 	attr_reader :field_name, :field_type
+	attr_accessor :access_flags
 
 	def initialize field_name, field_type
 		@field_name = field_name

@@ -17,7 +17,7 @@ class FieldLoader
 		f = []
 		@parser.load_u2.times do
 			c = ClassField.new
-			c.access_flags = AccessFlags.new(@parser.load_u2)
+			c.access_flags = @parser.load_u2
 			c.name_index = @parser.load_u2
 			c.descriptor_index = @parser.load_u2
 			c.attributes = @attribute_loader.load

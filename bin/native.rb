@@ -34,7 +34,7 @@ def Java_lang_jni_Class_isInterface jvm, params
 	field = JavaField.new('name', 'Ljava/lang/String;')
 	nameref = jvm.get_field(reference, reference.jvmclass, field)
 	jvmclass = jvm.load_class(jvm.java_to_native_string(nameref))
-	!jvmclass.array? && jvmclass.class_file.access_flags.interface? ? 1 : 0
+	!jvmclass.array? && jvmclass.access_flags.interface? ? 1 : 0
 end
 
 def Java_lang_jni_Throwable_fillInStackTrace jvm, params
