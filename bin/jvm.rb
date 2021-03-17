@@ -93,13 +93,9 @@ class Resolver
 	def resolve_field jvmclass, field
 		if jvmclass.resolved.key? field
 			jvmclass.resolved[field]
-		elsif jvmclass.class_file.super_class.nonzero?
+		elsif jvmclass.super_class
 			jvmclass.resolved[field] = resolve_field(
-					@jvm.load_class(
-							jvmclass.class_file.get_attrib_name(
-									jvmclass.class_file.super_class
-							)
-					),
+					@jvm.load_class(jvmclass.super_class),
 					field
 			)
 		else
@@ -113,11 +109,7 @@ class Resolver
 			reference_jvmclass != method_jvmclass &&
 			type_equal_or_superclass?(reference_jvmclass, method_jvmclass)
 			resolve_method(
-					@jvm.load_class(
-							reference_jvmclass.class_file.get_attrib_name(
-									reference_jvmclass.class_file.super_class
-							)
-					),
+					@jvm.load_class(reference_jvmclass.super_class),
 					method
 			)
 		else
@@ -133,9 +125,9 @@ class Resolver
 					@jvm.load_class('java/lang/Object'),
 					method
 			)
-		elsif jvmclass.class_file.super_class.nonzero?
+		elsif jvmclass.super_class
 			jvmclass.resolved[method] = resolve_method(
-					@jvm.load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)),
+					@jvm.load_class(jvmclass.super_class),
 					method
 			)
 		else
@@ -163,13 +155,16 @@ class Resolver
 
 	def superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
 		return true if
-				jvmclass_a.class_file.super_class.nonzero? &&
+				jvmclass_a.super_class &&
 				type_equal_or_superclass?(
-						@jvm.load_class(jvmclass_a.class_file.get_attrib_name(jvmclass_a.class_file.super_class)),
+						@jvm.load_class(jvmclass_asuper_class),
 						jvmclass_b
 				)
 		jvmclass_a.class_file.interfaces.each.any? do |i|
-			return true if type_equal_or_superclass?(@jvm.load_class(jvmclass_a.class_file.get_attrib_name(i)), jvmclass_b)
+			return true if type_equal_or_superclass?(
+					@jvm.load_class(jvmclass_a.class_file.get_attrib_name(i)),
+					jvmclass_b
+			)
 		end
 	end
 end
@@ -212,8 +207,8 @@ class Allocator
 				.select { |f| static == !f.access_flags.static?.nil? }
 				.map(&jvmclass.method(:load_java_field))
 				.each { |f| @jvm.set_field(reference, jvmclass, f, f.default_value) }
-		return if static || jvmclass.class_file.super_class.zero?
-		initialize_fields_for(reference, load_class(jvmclass.class_file.get_attrib_name(jvmclass.class_file.super_class)))
+		return if static || jvmclass.super_class.nil?
+		initialize_fields_for(reference, load_class(jvmclass.super_class))
 	end
 
 	def load_class class_type

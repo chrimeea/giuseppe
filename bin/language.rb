@@ -39,7 +39,7 @@ end
 
 class JavaClass
 	attr_reader :class_type, :reference, :resolved, :class_file, :fields,
-			:methods, :source_file
+			:methods, :source_file, :super_class
 
 	def initialize reference, class_type
 		@class_type = class_type
@@ -52,6 +52,7 @@ class JavaClass
 	def class_file= value
 		@class_file = value
 		set_source_file
+		set_super_class
 		value.fields.each do |f|
 			field = load_java_field f
 			@fields[field] = f
@@ -69,6 +70,11 @@ class JavaClass
 				@class_file.constant_pool[field_attrib.name_index].value,
 				@class_file.constant_pool[field_attrib.descriptor_index].value
 		)
+	end
+
+	def set_super_class
+		return if @class_file.super_class.zero?
+		@super_class = @class_file.get_attrib_name @class_file.super_class
 	end
 
 	def set_source_file
