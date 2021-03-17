@@ -207,8 +207,8 @@ class Allocator
 
 	def initialize_fields_for reference, jvmclass
 		static = reference.class_reference?
-		jvmclass.class_file
-				.fields
+		jvmclass.fields
+				.values
 				.select { |f| static == !f.access_flags.static?.nil? }
 				.map(&jvmclass.method(:load_java_field))
 				.each { |f| @jvm.set_field(reference, jvmclass, f, f.default_value) }
