@@ -107,6 +107,7 @@ class JavaClass
 		@resolved = {}
 		@fields = []
 		@methods = {}
+		@interfaes = []
 	end
 
 	def class_file= value
@@ -124,6 +125,7 @@ class JavaClass
 			@methods[method] = m
 			@resolved[method] = self
 		end
+		@interfaces = value.interfaces.map { |i| @class_file.get_attrib_name i }
 	end
 
 	def load_java_field field_attrib

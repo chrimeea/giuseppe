@@ -160,9 +160,9 @@ class Resolver
 						@jvm.load_class(jvmclass_asuper_class),
 						jvmclass_b
 				)
-		jvmclass_a.class_file.interfaces.each.any? do |i|
+		jvmclass_a.interfaces.each.any? do |i|
 			return true if type_equal_or_superclass?(
-					@jvm.load_class(jvmclass_a.class_file.get_attrib_name(i)),
+					@jvm.load_class(i),
 					jvmclass_b
 			)
 		end
