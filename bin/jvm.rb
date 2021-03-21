@@ -2,7 +2,7 @@
 
 require_relative 'classfile'
 require_relative 'language'
-require_relative 'interpreter'
+require_relative 'operations'
 require_relative 'native'
 
 class Frame
@@ -76,12 +76,61 @@ class Scheduler
 			"#{frame.method.method_name}"
 		end
 		if frame.code_attr
-			Interpreter.new(@jvm, frame).loop_code
+			loop_code frame
 		else
 			send frame.method.native_name(frame.jvmclass), @jvm, frame.locals
 		end
 	ensure
 		@frames.pop
+	end
+
+	def loop_code frame
+		$logger.debug('jvm.rb') do
+			"#{@frames.size}, #{frame.code_attr.code}"
+		end
+		dispatcher = OperationDispatcher.new(@jvm, frame)
+		while frame.pc < frame.code_attr.code.length
+			begin
+				opcode = frame.next_instruction
+				$logger.debug('interpreter.rb') do
+					"#{@frames.size}, #{opcode}"
+				end
+				case opcode
+				when 172, 176
+					return frame.stack.pop
+				when 177
+					break
+				else
+					dispatcher.interpret opcode
+				end
+			rescue JVMError => e
+				handle_exception frame, e.exception
+			rescue ZeroDivisionError
+				handle_exception frame, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArithmeticException'))
+			rescue NoMethodError => e
+				raise e if e.receiver
+				handle_exception frame, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
+			end
+		end
+	end
+
+	def handle_exception frame, exception
+		handler = resolve_exception_handler frame, exception
+		raise JVMError, exception unless handler
+		frame.stack.push exception
+		frame.pc = handler.handler_pc
+	end
+
+	def resolve_exception_handler frame, exception
+		frame.code_attr.exception_table.each do |e|
+			if frame.pc - 1 >= e.start_pc && frame.pc - 1 < e.end_pc &&
+				(e.catch_type.zero? ||
+				@jvm.type_equal_or_superclass?(exception.jvmclass,
+					@jvm.load_class(frame.jvmclass.class_file.get_attrib_name(e.catch_type))))
+				return e
+			end
+		end
+		nil
 	end
 end
 

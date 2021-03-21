@@ -107,7 +107,7 @@ class JavaClass
 		@resolved = {}
 		@fields = []
 		@methods = {}
-		@interfaes = []
+		@interfaces = []
 	end
 
 	def class_file= value
