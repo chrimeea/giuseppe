@@ -5,6 +5,66 @@ require_relative 'constantpool'
 require_relative 'attributes'
 require_relative 'fields'
 
+class AccessFlags
+	def initialize access_flags
+		@access_flags = access_flags
+	end
+
+	def public?
+		(@access_flags & 0x0001).nonzero?
+	end
+
+	def private?
+		(@access_flags & 0x0002).nonzero?
+	end
+
+	def protected?
+		(@access_flags & 0x0004).nonzero?
+	end
+
+	def static?
+		(@access_flags & 0x0008).nonzero?
+	end
+
+	def final?
+		(@access_flags & 0x0010).nonzero?
+	end
+
+	def synchronized?
+		(@access_flags & 0x0020).nonzero?
+	end
+
+	def volatile?
+		(@access_flags & 0x0040).nonzero?
+	end
+
+	def transient?
+		(@access_flags & 0x0080).nonzero?
+	end
+
+	def native?
+		(@access_flags & 0x0100).nonzero?
+	end
+
+	def interface?
+		(@access_flags & 0x0200).nonzero?
+	end
+
+	def abstract?
+		(@access_flags & 0x0400).nonzero?
+	end
+
+	def strict?
+		(@access_flags & 0x0800).nonzero?
+	end
+
+	def inspect
+		@access_flags.to_s(2)
+	end
+
+	alias super? synchronized?
+end
+
 class ClassFile
 	attr_accessor	:constant_pool, :interfaces, :attributes,
 					:fields, :methods, :magic, :minor_version, :major_version,
@@ -52,7 +112,7 @@ class ClassLoader
 		@class_file.minor_version = @parser.load_u2
 		@class_file.major_version = @parser.load_u2
 		@class_file.constant_pool = @pool_loader.load
-		@class_file.access_flags = @parser.load_u2
+		@class_file.access_flags = AccessFlags.new @parser.load_u2
 		@class_file.this_class = @parser.load_u2
 		@class_file.super_class = @parser.load_u2
 		@class_file.interfaces = load_interfaces

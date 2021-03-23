@@ -96,7 +96,7 @@ class AttributeLoader
 			t.inner_class_info_index = @parser.load_u2
 			t.outer_class_info_index = @parser.load_u2
 			t.inner_name_index = @parser.load_u2
-			t.inner_class_access_flags = @parser.load_u2
+			t.inner_class_access_flags = AccessFlags.new @parser.load_u2
 			a.classes << t
 		end
 		a
