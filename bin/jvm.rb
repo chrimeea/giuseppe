@@ -245,9 +245,7 @@ class Allocator
 	end
 
 	def new_java_object jvmclass
-		reference = JavaInstance.new jvmclass
-		initialize_fields_for reference, jvmclass
-		reference
+		initialize_fields_for JavaInstance.new(jvmclass), jvmclass
 	end
 
 	def initialize_fields_for reference, jvmclass
@@ -255,7 +253,7 @@ class Allocator
 		jvmclass.fields
 				.select { |_, f| static == !f.access_flags.static?.nil? }
 				.each { |f, _| @jvm.set_field(reference, jvmclass, f, f.default_value) }
-		return if static || jvmclass.super_class.nil?
+		return reference if static || jvmclass.super_class.nil?
 		initialize_fields_for(reference, load_class(jvmclass.super_class))
 	end
 
