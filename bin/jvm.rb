@@ -41,6 +41,7 @@ class Frame
 	end
 
 	def next_instruction
+		fail if @pc >= @code_attr.code.length
 		@pc += 1
 		@code_attr.code[@pc - 1]
 	end
@@ -89,7 +90,7 @@ class Scheduler
 			"#{@frames.size}, #{frame.code_attr.code}"
 		end
 		dispatcher = OperationDispatcher.new(@jvm, frame)
-		while frame.pc < frame.code_attr.code.length
+		loop do
 			begin
 				opcode = frame.next_instruction
 				$logger.debug('interpreter.rb') do
