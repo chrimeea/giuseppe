@@ -1,9 +1,5 @@
 class ClassField
 	attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
-
-	def code
-		@attributes[ClassAttributeCode]&.first
-	end
 end
 
 class FieldLoader

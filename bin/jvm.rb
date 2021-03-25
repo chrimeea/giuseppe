@@ -15,7 +15,7 @@ class Frame
 		@jvmclass = jvmclass
 		@method = method
 		@pc = 0
-		@code_attr = m.code
+		@code_attr = m.attributes[ClassAttributeCode]&.first
 		if native?
 			@locals = params
 		else
