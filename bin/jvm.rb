@@ -47,7 +47,7 @@ class Frame
 	end
 
 	def line_number
-		a = @code_attr.attributes.find { |attrib| attrib.is_a? ClassAttributeLineNumber }
+		a = @code_attr.attributes[ClassAttributeLineNumber]&.first
 		return 0 unless a
 		i = a.line_number_table.index { |t| t.start_pc > @pc } || 0
 		a.line_number_table[i - 1].line_number

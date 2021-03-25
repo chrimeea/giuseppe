@@ -2,8 +2,7 @@ class ClassField
 	attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
 
 	def code
-		i = attributes.index { |a| a.is_a? ClassAttributeCode }
-		attributes[i] if i
+		@attributes[ClassAttributeCode]&.first
 	end
 end
 

@@ -38,8 +38,7 @@ class JavaInstanceArray < JavaInstance
 end
 
 class JavaClass
-	attr_reader :class_type, :reference, :resolved, :class_file, :fields,
-			:methods, :source_file
+	attr_reader :class_type, :reference, :resolved, :class_file, :fields, :methods
 
 	def initialize reference, class_type
 		@class_type = class_type
@@ -52,7 +51,6 @@ class JavaClass
 
 	def class_file= value
 		@class_file = value
-		set_source_file
 		value.fields.each do |f|
 			field = JavaField.new(
 					@class_file.constant_pool[f.name_index].value,
@@ -62,7 +60,10 @@ class JavaClass
 			@resolved[field] = self
 		end
 		value.methods.each do |m|
-			method = JavaMethod.new(value.constant_pool[m.name_index].value, value.constant_pool[m.descriptor_index].value)
+			method = JavaMethod.new(
+					value.constant_pool[m.name_index].value,
+					value.constant_pool[m.descriptor_index].value
+			)
 			@methods[method] = m
 			@resolved[method] = self
 		end
@@ -75,9 +76,10 @@ class JavaClass
 		@class_file.get_attrib_name @class_file.super_class
 	end
 
-	def set_source_file
-		a = @class_file.attributes.find { |attrib| attrib.is_a? ClassAttributeSourceFile }
-		@source_file = @class_file.constant_pool[a.sourcefile_index].value if a
+	def source_file
+		a = @class_file.attributes[ClassAttributeSourceFile]
+		@class_file.constant_pool[a.first.sourcefile_index].value if a
+		''
 	end
 
 	def primitive?

@@ -168,9 +168,14 @@ class AttributeLoader
 	end
 
 	def load
-		attribs = []
+		attribs = {}
 		@parser.load_u2.times do
-			attribs << load_one_attribute
+			a = load_one_attribute
+			if attribs.key? a.class
+				attribs[a.class] << a
+			else
+				attribs[a.class] = [a]
+			end
 		end
 		attribs
 	end
