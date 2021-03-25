@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
+# A java exception wrapped as a ruby error
 class JVMError < StandardError
 	attr_reader :exception
 
 	def initialize exception
-		@exception = exception
 		super
+		@exception = exception
 	end
 end
 
+# Implements the bytecode instructions of a method
 class Operations
 	def initialize jvm, frame
 		@jvm = jvm
@@ -282,8 +284,10 @@ class Operations
 		)
 		reference = @frame.stack.pop
 		if reference
-			@frame.stack.push(@jvm.type_equal_or_superclass?(reference.jvmclass,
-				@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index))) ? 1 : 0)
+			@frame.stack.push(@jvm.type_equal_or_superclass?(
+					reference.jvmclass,
+					@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index))
+			) ? 1 : 0)
 		else
 			@frame.stack.push 0
 		end
@@ -304,6 +308,7 @@ class Operations
 	end
 end
 
+# Matches opcodes with their implementation in the Operations class
 class OperationDispatcher
 	def initialize jvm, frame
 		@jvm = jvm
@@ -340,8 +345,12 @@ class OperationDispatcher
 	def goto_if
 		@frame.pc += if yield
 						BinaryParser.to_signed(
-						BinaryParser.to_16bit_unsigned(
-							@frame.code_attr.code[@frame.pc], @frame.code_attr.code[@frame.pc + 1]), 2) - 1
+								BinaryParser.to_16bit_unsigned(
+										@frame.code_attr.code[@frame.pc],
+										@frame.code_attr.code[@frame.pc + 1]
+								),
+								2
+						) - 1
 					else
 						2
 					end

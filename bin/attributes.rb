@@ -1,11 +1,16 @@
+# frozen_string_literal: true
+
+# Base class for all attributes
 class ClassAttribute
 	attr_accessor :attribute_name_index, :info
 end
 
+# Constant value attribute
 class ClassAttributeConstantValue < ClassAttribute
 	attr_accessor :constantvalue_index
 end
 
+# Code attribute
 class ClassAttributeCode < ClassAttribute
 	attr_accessor :max_stack, :max_locals, :code, :exception_table, :attributes
 
@@ -14,10 +19,12 @@ class ClassAttributeCode < ClassAttribute
 	end
 end
 
+# Exceptions attribute
 class ClassAttributeExceptions < ClassAttribute
 	attr_accessor :exception_index_table
 end
 
+# Inner classes attribute
 class ClassAttributeInnerClasses < ClassAttribute
 	attr_accessor :classes
 
@@ -26,13 +33,16 @@ class ClassAttributeInnerClasses < ClassAttribute
 	end
 end
 
+# Syntetic attribute
 class ClassAttributeSyntetic < ClassAttribute
 end
 
+# Source file attribute
 class ClassAttributeSourceFile < ClassAttribute
 	attr_accessor :sourcefile_index
 end
 
+# Line number attribute
 class ClassAttributeLineNumber < ClassAttribute
 	attr_accessor :line_number_table
 
@@ -41,6 +51,7 @@ class ClassAttributeLineNumber < ClassAttribute
 	end
 end
 
+# Local variable table attribute
 class ClassAttributeLocalVariableTable < ClassAttribute
 	attr_accessor :local_variable_table
 
@@ -49,9 +60,11 @@ class ClassAttributeLocalVariableTable < ClassAttribute
 	end
 end
 
+# Deprecated attribute
 class ClassAttributeDeprecated < ClassAttribute
 end
 
+# Parses attributes from a class file
 class AttributeLoader
 	def initialize parser, class_file
 		@parser = parser

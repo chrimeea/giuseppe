@@ -5,6 +5,7 @@ require_relative 'language'
 require_relative 'operations'
 require_relative 'native'
 
+# An execution frame
 class Frame
 	attr_reader :jvmclass, :stack, :locals, :code_attr, :method
 	attr_accessor :pc
@@ -54,6 +55,7 @@ class Frame
 	end
 end
 
+# Runs the frame code and handles exceptions
 class Scheduler
 	attr_reader :frames
 
@@ -135,6 +137,7 @@ class Scheduler
 	end
 end
 
+# Resolves fields and methods and checks type equality
 class Resolver
 	def initialize jvm
 		@jvm = jvm
@@ -208,6 +211,7 @@ class Resolver
 	end
 end
 
+# Loads classes and creates java arrays and objects
 class Allocator
 	def initialize jvm
 		@jvm = jvm
@@ -263,6 +267,7 @@ class Allocator
 	end
 end
 
+# Mediates between Resolver, Allocator and Scheduler
 class JVM
 	def initialize
 		@resolver = Resolver.new self

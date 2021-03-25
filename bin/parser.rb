@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+# Parses encoded bytecode from a class file
 class BinaryParser
 	def initialize contents
 		@i = 0

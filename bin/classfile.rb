@@ -5,6 +5,7 @@ require_relative 'constantpool'
 require_relative 'attributes'
 require_relative 'fields'
 
+# Convenience methods to interpret access flags
 class AccessFlags
 	def initialize access_flags
 		@access_flags = access_flags
@@ -65,8 +66,9 @@ class AccessFlags
 	alias super? synchronized?
 end
 
+# Holds all values read from a class file
 class ClassFile
-	attr_accessor	:constant_pool, :interfaces, :attributes,
+	attr_accessor :constant_pool, :interfaces, :attributes,
 					:fields, :methods, :magic, :minor_version, :major_version,
 					:this_class, :super_class, :access_flags
 
@@ -92,6 +94,7 @@ class ClassFile
 	end
 end
 
+# Parses a class file
 class ClassLoader
 	def initialize class_type
 		@name = class_path class_type

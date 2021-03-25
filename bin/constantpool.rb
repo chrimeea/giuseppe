@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+# Base class for constants in the constant pool
 class ConstantPoolConstant
 	attr_reader :tag
 
@@ -6,6 +9,7 @@ class ConstantPoolConstant
 	end
 end
 
+# Constant with one index field
 class ConstantPoolConstantIndex1Info < ConstantPoolConstant
 	attr_reader :index1
 
@@ -23,6 +27,7 @@ class ConstantPoolConstantIndex1Info < ConstantPoolConstant
 	end
 end
 
+# Constant with two index fields
 class ConstantPoolConstantIndex2Info < ConstantPoolConstantIndex1Info
 	attr_reader :index2
 
@@ -32,6 +37,7 @@ class ConstantPoolConstantIndex2Info < ConstantPoolConstantIndex1Info
 	end
 end
 
+# Value constant
 class ConstantPoolConstantValueInfo < ConstantPoolConstant
 	attr_reader :value
 
@@ -41,6 +47,7 @@ class ConstantPoolConstantValueInfo < ConstantPoolConstant
 	end
 end
 
+# Parses the constant pool from a class file
 class ConstantPoolLoader
 	def initialize parser
 		@parser = parser

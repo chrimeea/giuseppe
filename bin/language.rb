@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+# An instance of a java object
 class JavaInstance
 	attr_reader :jvmclass
 
@@ -23,6 +26,7 @@ class JavaInstance
 	end
 end
 
+# An instance of a java array
 class JavaInstanceArray < JavaInstance
 	attr_reader :values
 
@@ -37,6 +41,7 @@ class JavaInstanceArray < JavaInstance
 	end
 end
 
+# The class of a java object, array or primitve type
 class JavaClass
 	attr_reader :class_type, :reference, :resolved, :class_file, :fields, :methods
 
@@ -104,6 +109,7 @@ class JavaClass
 	end
 end
 
+# An unresolved java field as name and type
 class JavaField
 	attr_reader :field_name, :field_type
 
@@ -125,6 +131,7 @@ class JavaField
 	end
 end
 
+# An unesolved java method as name and type
 class JavaMethod
 	attr_reader :method_name, :method_type, :args, :attrib, :retval
 

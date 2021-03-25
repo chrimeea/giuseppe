@@ -1,7 +1,11 @@
+# frozen_string_literal: true
+
+# Holds information about a java field or method as found in the class file
 class ClassField
 	attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
 end
 
+# Parses java fields and methods from a class file
 class FieldLoader
 	def initialize parser, attribute_loader
 		@parser = parser

@@ -4,6 +4,7 @@
 require_relative 'jvm'
 require 'logger'
 
+# A java program
 class Program
 	def initialize jvm
 		@jvm = jvm
