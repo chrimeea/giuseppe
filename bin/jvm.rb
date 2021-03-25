@@ -170,11 +170,6 @@ class Resolver
 	def resolve_method jvmclass, method
 		if jvmclass.resolved.key? method
 			jvmclass.resolved[method]
-		elsif jvmclass.array?
-			jvmclass.resolved[method] = resolve_method(
-					@jvm.load_class('java/lang/Object'),
-					method
-			)
 		elsif jvmclass.super_class
 			jvmclass.resolved[method] = resolve_method(
 					@jvm.load_class(jvmclass.super_class),
@@ -187,17 +182,11 @@ class Resolver
 
 	def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		return true if jvmclass_a.class_type == jvmclass_b.class_type
-		if jvmclass_a.primitive?
-			jvmclass_b == @jvm.load_class('java/lang/Object')
-		elsif jvmclass_a.array?
-			if jvmclass_b.array?
-				return false if jvmclass_a.dimensions != jvmclass_b.dimensions
-				jvmclass_a = @jvm.load_class class_type_a.element_type
-				jvmclass_b = @jvm.load_class class_type_b.element_type
-				type_equal_or_superclass?(jvmclass_a, jvmclass_b)
-			else
-				jvmclass_b == @jvm.load_class('java/lang/Object')
-			end
+		if jvmclass_a.array? && jvmclass_b.array?
+			return false if jvmclass_a.dimensions != jvmclass_b.dimensions
+			jvmclass_a = @jvm.load_class class_type_a.element_type
+			jvmclass_b = @jvm.load_class class_type_b.element_type
+			type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		else
 			superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
 		end
