@@ -14,3 +14,35 @@ javac -source 1.6 -target 1.6 java/io/*.java
 Usage example to compile and run a Test.java file:
 javac -source 1.6 -target 1.6 Test.java
 ./bin/java.rb Test
+
+Listing of jvm implementation classes:
+
+┌------------------------------------┐
+|program                             |
+├------------------------------------┤
+|jvm                                 |
+├------------------------------------┤
+|scheduler                           |
+|resolver                            |
+|allocator                           |
+|operationdispatcher                 |
+|operations                          |
+├------------------------------------┤
+|frame                               |
+|javainstance                        |
+|javainstancearray                   |
+|javaclass                           |
+|javafield                           |
+|javamethod                          |
+├------------------------------------┤
+|classfile                           |
+|classloader                         |
+|classfield                          |
+|fieldloader                         |
+|classattribute + ...                |
+|attributeloader                     |
+|constantpoolconstant + ...          |
+|constantpoolloader                  |
+├------------------------------------┤
+|binaryparser                        |
+└------------------------------------┘
