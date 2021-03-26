@@ -433,13 +433,13 @@ class OperationDispatcher
 
 	def case_math opcode
 		case opcode
-		when 96, 97, 98, 99
+		when 96..99
 			@ops.op_iadd
-		when 100, 101, 102, 103
+		when 100..103
 			@ops.op_isub
-		when 104, 105, 106, 107
+		when 104..107
 			@ops.op_imul
-		when 108, 109, 110, 111
+		when 108..111
 			@ops.op_idiv
 		end
 	end
@@ -479,7 +479,7 @@ class OperationDispatcher
 			@ops.op_ldc
 		when 20
 			@ops.op_ldc2_wide
-		when 21, 22, 23, 24, 25
+		when 21..25
 			@ops.op_iload @frame.next_instruction
 		when 26, 30, 34, 38, 42
 			@ops.op_iload 0
@@ -524,17 +524,17 @@ class OperationDispatcher
 	def interpret opcode
 		case opcode
 		when 0
-		when 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+		when 1..15
 			case_aconst opcode
-		when 16, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 50, 51
+		when 16, 18, 20..46, 50, 51
 			case_iload opcode
-		when 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 83, 84
+		when 54..79, 83, 84
 			case_istore opcode
 		when 87
 			@frame.stack.pop
 		when 89
 			@ops.op_dup
-		when 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111
+		when 96..111
 			case_math opcode
 		when 120, 122
 			case_ish opcode
@@ -542,17 +542,17 @@ class OperationDispatcher
 			case_boolean opcode
 		when 132
 			@ops.op_iinc
-		when 133, 134, 135, 136, 137, 138, 139, 140, 141, 145, 146, 147
+		when 133..141, 145, 146, 147
 			case_conversion opcode
-		when 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 198, 199
+		when 153..167, 198, 199
 			case_goto opcode
-		when 178, 179, 180, 181
+		when 178..181
 			case_field opcode
-		when 182, 183, 184, 185
+		when 182..185
 			@ops.op_invoke opcode
 		when 187
 			@ops.op_newobject
-		when 188, 189, 190, 197
+		when 188..190, 197
 			case_array opcode
 		when 191
 			@ops.op_athrow

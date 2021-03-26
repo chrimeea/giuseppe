@@ -118,13 +118,13 @@ class Scheduler
 	end
 
 	def handle_exception frame, exception
-		handler = resolve_exception_handler frame, exception
+		handler = find_exception_handler frame, exception
 		raise JVMError, exception unless handler
 		frame.stack.push exception
 		frame.pc = handler.handler_pc
 	end
 
-	def resolve_exception_handler frame, exception
+	def find_exception_handler frame, exception
 		frame.code_attr.exception_table.each do |e|
 			if frame.pc - 1 >= e.start_pc && frame.pc - 1 < e.end_pc &&
 				(e.catch_type.zero? ||
@@ -250,6 +250,10 @@ class Allocator
 		initialize_fields_for(reference, load_class(jvmclass.super_class))
 	end
 
+	def initialize_static_fields_for jvmclass
+		initialize_fields_for jvmclass.reference, jvmclass
+	end
+
 	def load_class class_type
 		if @classes.key? class_type
 			@classes[class_type]
@@ -258,7 +262,7 @@ class Allocator
 			@classes[class_type] = jvmclass
 			unless jvmclass.array? || jvmclass.primitive?
 				jvmclass.class_file = ClassLoader.new(class_type).load
-				initialize_fields_for jvmclass.reference, jvmclass
+				initialize_static_fields_for jvmclass
 				clinit = JavaMethod.new('<clinit>', '()V')
 				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
 			end

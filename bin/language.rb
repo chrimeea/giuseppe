@@ -33,11 +33,11 @@ class JavaInstanceArray < JavaInstance
 	def initialize jvmclass, counts
 		fail unless jvmclass.array?
 		fail unless jvmclass.dimensions == counts.size
+		super jvmclass
 		@values = [nil] * counts.pop
 		counts.reverse.each do |c|
 			@values = Array.new(c) { |i| @values[i] }
 		end
-		super jvmclass
 	end
 end
 
@@ -83,8 +83,8 @@ class JavaClass
 
 	def source_file
 		a = @class_file.attributes[ClassAttributeSourceFile]
-		@class_file.constant_pool[a.first.sourcefile_index].value if a
-		''
+		return '' unless a
+		@class_file.constant_pool[a.first.sourcefile_index].value
 	end
 
 	def primitive?
