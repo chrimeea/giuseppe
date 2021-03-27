@@ -17,6 +17,17 @@ class ClassAttributeCode < ClassAttribute
 	class Table
 		attr_accessor :start_pc, :end_pc, :handler_pc, :catch_type
 	end
+
+	def line_number_for pc
+		a = @attributes[ClassAttributeLineNumber]&.first
+		return 0 unless a
+		i = a.line_number_table.index { |t| t.start_pc > pc } || 0
+		a.line_number_table[i - 1].line_number
+	end
+
+	def exception_handlers_for pc
+		@exception_table.select { |e| pc >= e.start_pc && pc < e.end_pc }
+	end
 end
 
 # Exceptions attribute

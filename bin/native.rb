@@ -54,7 +54,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 				[jvm.new_java_string(f.jvmclass.class_type),
 					jvm.new_java_string(f.method.method_name),
 					jvm.new_java_string(f.jvmclass.source_file),
-					f.line_number]
+					f.code_attr.line_number_for(f.pc)]
 		)
 	end
 	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])

@@ -11,19 +11,23 @@ class Frame
 	attr_accessor :pc
 
 	def initialize jvmclass, method, params
-		m = jvmclass.methods[method]
-		fail "Unknown method #{method.method_name}" unless m
+		method_attr = jvmclass.methods[method]
+		fail "Unknown method #{method.method_name}" unless method_attr
 		@jvmclass = jvmclass
 		@method = method
 		@pc = 0
-		@code_attr = m.attributes[ClassAttributeCode]&.first
 		if native?
 			@locals = params
 		else
+			@code_attr = method_attr.attributes[ClassAttributeCode].first
 			@stack = []
 			@locals = []
 			save_into_locals params
 		end
+	end
+
+	def native?
+		jvmclass.methods[method].access_flags.native?
 	end
 
 	def save_into_locals params
@@ -37,21 +41,10 @@ class Frame
 		end
 	end
 
-	def native?
-		@code_attr.nil?
-	end
-
 	def next_instruction
 		fail if @pc >= @code_attr.code.length
 		@pc += 1
 		@code_attr.code[@pc - 1]
-	end
-
-	def line_number
-		a = @code_attr.attributes[ClassAttributeLineNumber]&.first
-		return 0 unless a
-		i = a.line_number_table.index { |t| t.start_pc > @pc } || 0
-		a.line_number_table[i - 1].line_number
 	end
 end
 
@@ -78,10 +71,10 @@ class Scheduler
 			"#{frame.jvmclass.class_type}, "\
 			"#{frame.method.method_name}"
 		end
-		if frame.code_attr
-			loop_code frame
-		else
+		if frame.native?
 			send frame.method.native_name(frame.jvmclass), @jvm, frame.locals
+		else
+			loop_code frame
 		end
 	ensure
 		@frames.pop
@@ -125,15 +118,17 @@ class Scheduler
 	end
 
 	def find_exception_handler frame, exception
-		frame.code_attr.exception_table.each do |e|
-			if frame.pc - 1 >= e.start_pc && frame.pc - 1 < e.end_pc &&
-				(e.catch_type.zero? ||
-				@jvm.type_equal_or_superclass?(exception.jvmclass,
-					@jvm.load_class(frame.jvmclass.class_file.get_attrib_name(e.catch_type))))
-				return e
-			end
+		handlers = frame.code_attr.exception_handlers_for(frame.pc - 1)
+		i = handlers.index do |e|
+				e.catch_type.zero? ||
+						@jvm.type_equal_or_superclass?(
+								exception.jvmclass,
+								@jvm.load_class(
+										frame.jvmclass.class_file.get_attrib_name(e.catch_type)
+								)
+						)
 		end
-		nil
+		return handlers[i] if i
 	end
 end
 
