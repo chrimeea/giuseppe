@@ -43,22 +43,28 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	array_class_type = "[L#{elem_class_type};"
 	stacktrace = []
 	jvmclass = jvm.load_class elem_class_type
-	jvm.frames.each do |f|
-		break if f.jvmclass.class_type == reference.jvmclass.class_type
+	frame = jvm.current_frame
+	while frame
+		break if frame.jvmclass.class_type == reference.jvmclass.class_type
+		frame = frame.parent_frame
+	end
+	frame = frame.parent_frame
+	while frame
 		stacktrace << jvm.new_java_object_with_constructor(
 				jvmclass,
 				JavaMethod.new(
 						'<init>',
 						'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'
 				),
-				[jvm.new_java_string(f.jvmclass.class_type),
-					jvm.new_java_string(f.method.method_name),
-					jvm.new_java_string(f.jvmclass.source_file),
-					f.code_attr.line_number_for(f.pc)]
+				[jvm.new_java_string(frame.jvmclass.class_type),
+					jvm.new_java_string(frame.method.method_name),
+					jvm.new_java_string(frame.jvmclass.source_file),
+					if frame.native? then 0 else frame.code_attr.line_number_for(frame.pc) end]
 		)
+		frame = frame.parent_frame
 	end
 	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])
-	stacktrace.reverse.each_with_index { |s, i| arrayref.values[i] = s }
+	stacktrace.each_with_index { |s, i| arrayref.values[i] = s }
 	method = JavaMethod.new('setStackTrace', "(#{array_class_type})V")
 	jvm.run reference.jvmclass, method, [reference, arrayref]
 	reference

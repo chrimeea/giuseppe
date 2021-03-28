@@ -7,21 +7,22 @@ require_relative 'native'
 
 # An execution frame
 class Frame
-	attr_reader :jvmclass, :stack, :locals, :code_attr, :method
+	attr_reader :jvmclass, :stack, :locals, :code_attr, :method, :parent_frame
 	attr_accessor :pc
 
-	def initialize jvmclass, method, params
+	def initialize jvmclass, method, params, parent_frame
 		method_attr = jvmclass.methods[method]
 		fail "Unknown method #{method.method_name}" unless method_attr
 		@jvmclass = jvmclass
 		@method = method
 		@pc = 0
+		@parent_frame = parent_frame
 		if native?
 			@locals = params
 		else
-			@code_attr = method_attr.attributes[ClassAttributeCode].first
 			@stack = []
 			@locals = []
+			@code_attr = method_attr.attributes[ClassAttributeCode].first
 			save_into_locals params
 		end
 	end
@@ -50,47 +51,36 @@ end
 
 # Runs the frame code and handles exceptions
 class Scheduler
-	attr_reader :frames
+	attr_reader :current_frame
 
 	def initialize jvm
 		@jvm = jvm
-		@frames = []
+		@current_frame = nil
 	end
 
-	def run frame
-		result = run_and_return frame
-		return unless frame.method.return_value?
-		return result if @frames.last.native?
-		@frames.last.stack.push(result)
+	def run jvmclass, method, params
+		frame = Frame.new(@jvm.resolve_method(jvmclass, method), method, params, @current_frame)
+		@current_frame = frame
+		run_and_return frame
+	ensure
+		@current_frame = frame.parent_frame
 	end
 
 	def run_and_return frame
-		@frames.push frame
-		$logger.debug('jvm.rb') do
-			"#{@frames.size}, "\
-			"#{frame.jvmclass.class_type}, "\
-			"#{frame.method.method_name}"
-		end
+		$logger.debug('jvm.rb') { "#{frame.jvmclass.class_type}, #{frame.method.method_name}" }
 		if frame.native?
 			send frame.method.native_name(frame.jvmclass), @jvm, frame.locals
 		else
 			loop_code frame
 		end
-	ensure
-		@frames.pop
 	end
 
 	def loop_code frame
-		$logger.debug('jvm.rb') do
-			"#{@frames.size}, #{frame.code_attr.code}"
-		end
+		$logger.debug('jvm.rb') { frame.code_attr.code.to_s }
 		dispatcher = OperationDispatcher.new(@jvm, frame)
 		loop do
 			begin
 				opcode = frame.next_instruction
-				$logger.debug('interpreter.rb') do
-					"#{@frames.size}, #{opcode}"
-				end
 				case opcode
 				when 172, 176
 					return frame.stack.pop
@@ -215,7 +205,7 @@ class Allocator
 
 	def java_to_native_string reference
 		method = JavaMethod.new('getBytes', '()[B')
-		arrayref = @jvm.run_and_return(reference.jvmclass, method, [reference])
+		arrayref = @jvm.run(reference.jvmclass, method, [reference])
 		arrayref.values.pack('c*')
 	end
 
@@ -234,6 +224,14 @@ class Allocator
 
 	def new_java_object jvmclass
 		initialize_fields_for JavaInstance.new(jvmclass), jvmclass
+	end
+
+	def new_java_class name
+		@jvm.run(
+				load_class('java/lang/Class'),
+				JavaMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
+				[new_java_string(name)]
+		)
 	end
 
 	def initialize_fields_for reference, jvmclass
@@ -274,12 +272,12 @@ class JVM
 		@scheduler = Scheduler.new self
 	end
 
-	def load_class class_type
-		@allocator.load_class class_type
+	def current_frame
+		@scheduler.current_frame
 	end
 
-	def frames
-		@scheduler.frames
+	def load_class class_type
+		@allocator.load_class class_type
 	end
 
 	def check_array_index reference, index
@@ -287,12 +285,8 @@ class JVM
 		raise JVMError, new_java_object_with_constructor(load_class('java/lang/ArrayIndexOutOfBoundsException'))
 	end
 
-	def run_and_return jvmclass, method, params
-		@scheduler.run_and_return Frame.new(resolve_method(jvmclass, method), method, params)
-	end
-
 	def run jvmclass, method, params
-		@scheduler.run Frame.new(resolve_method(jvmclass, method), method, params)
+		@scheduler.run jvmclass, method, params
 	end
 
 	def new_java_object jvmclass
@@ -301,7 +295,7 @@ class JVM
 
 	def new_java_object_with_constructor jvmclass, method = JavaMethod.new('<init>', '()V'), params = []
 		reference = @allocator.new_java_object jvmclass
-		run_and_return jvmclass, method, [reference] + params
+		run jvmclass, method, [reference] + params
 		reference
 	end
 
@@ -310,11 +304,7 @@ class JVM
 	end
 
 	def new_java_class name
-		run_and_return(
-				load_class('java/lang/Class'),
-				JavaMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
-				[new_java_string(name)]
-		)
+		@allocator.new_java_class name
 	end
 
 	def new_java_string value

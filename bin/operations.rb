@@ -36,7 +36,7 @@ class Operations
 			if attrib.string?
 				reference = @jvm.new_java_string(value)
 				method = JavaMethod.new('intern', '()Ljava/lang/String;')
-				@frame.stack.push @jvm.run_and_return(reference.jvmclass, method, [reference])
+				@frame.stack.push @jvm.run(reference.jvmclass, method, [reference])
 			else
 				@frame.stack.push @jvm.new_java_class(value)
 			end
@@ -226,7 +226,8 @@ class Operations
 			@frame.next_instruction
 			@frame.next_instruction
 		end
-		@jvm.run jvmclass, method, params.reverse
+		result = @jvm.run(jvmclass, method, params.reverse)
+		@frame.stack.push result if method.return_value?
 	end
 
 	def op_newobject
