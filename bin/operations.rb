@@ -12,9 +12,9 @@ end
 
 # Implements the bytecode instructions of a method
 class Operations
-	def initialize jvm, frame
+	def initialize jvm
 		@jvm = jvm
-		@frame = frame
+		@frame = jvm.current_frame
 	end
 
 	def op_aconst value
@@ -311,10 +311,10 @@ end
 
 # Matches opcodes with their implementation in the Operations class
 class OperationDispatcher
-	def initialize jvm, frame
+	def initialize jvm
 		@jvm = jvm
-		@frame = frame
-		@ops = Operations.new jvm, frame
+		@frame = jvm.current_frame
+		@ops = Operations.new jvm
 	end
 
 	def case_array opcode

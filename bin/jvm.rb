@@ -31,6 +31,14 @@ class Frame
 		jvmclass.methods[method].access_flags.native?
 	end
 
+	def next_instruction
+		fail if @pc >= @code_attr.code.length
+		@pc += 1
+		@code_attr.code[@pc - 1]
+	end
+
+		private
+
 	def save_into_locals params
 		fail if params.size > @method.args.size + 1
 		p = params.reverse
@@ -40,12 +48,6 @@ class Frame
 			@locals.push value
 			@locals.push value if %w[J D].include? a
 		end
-	end
-
-	def next_instruction
-		fail if @pc >= @code_attr.code.length
-		@pc += 1
-		@code_attr.code[@pc - 1]
 	end
 end
 
@@ -59,62 +61,62 @@ class Scheduler
 	end
 
 	def run jvmclass, method, params
-		frame = Frame.new(@jvm.resolve_method(jvmclass, method), method, params, @current_frame)
-		@current_frame = frame
-		run_and_return frame
+		frame = @current_frame
+		@current_frame = Frame.new(@jvm.resolve_method(jvmclass, method), method, params, frame)
+		run_and_return
 	ensure
-		@current_frame = frame.parent_frame
+		@current_frame = frame
 	end
 
-	def run_and_return frame
-		$logger.debug('jvm.rb') { "#{frame.jvmclass.class_type}, #{frame.method.method_name}" }
-		if frame.native?
-			send frame.method.native_name(frame.jvmclass), @jvm, frame.locals
+	def run_and_return
+		$logger.debug('jvm.rb') { "#{@current_frame.jvmclass.class_type}, #{@current_frame.method.method_name}" }
+		if @current_frame.native?
+			send @current_frame.method.native_name(@current_frame.jvmclass), @jvm, @current_frame.locals
 		else
-			loop_code frame
+			loop_code
 		end
 	end
 
-	def loop_code frame
-		$logger.debug('jvm.rb') { frame.code_attr.code.to_s }
-		dispatcher = OperationDispatcher.new(@jvm, frame)
+	def loop_code
+		$logger.debug('jvm.rb') { @current_frame.code_attr.code.to_s }
+		dispatcher = OperationDispatcher.new @jvm
 		loop do
 			begin
-				opcode = frame.next_instruction
+				opcode = @current_frame.next_instruction
 				case opcode
 				when 172, 176
-					return frame.stack.pop
+					return @current_frame.stack.pop
 				when 177
 					break
 				else
 					dispatcher.interpret opcode
 				end
 			rescue JVMError => e
-				handle_exception frame, e.exception
+				handle_exception e.exception
 			rescue ZeroDivisionError
-				handle_exception frame, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArithmeticException'))
+				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArithmeticException'))
 			rescue NoMethodError => e
 				raise e if e.receiver
-				handle_exception frame, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
+				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
 			end
 		end
 	end
 
-	def handle_exception frame, exception
-		handler = find_exception_handler frame, exception
+	def handle_exception exception
+		handler = find_exception_handler exception
 		raise JVMError, exception unless handler
-		frame.stack.push exception
-		frame.pc = handler.handler_pc
+		@current_frame.stack.push exception
+		@current_frame.pc = handler.handler_pc
 	end
 
-	def find_exception_handler frame, exception
-		handlers = frame.code_attr.exception_handlers_for(frame.pc - 1)
+	def find_exception_handler exception
+		handlers = @current_frame.code_attr.exception_handlers_for(@current_frame.pc - 1)
 		i = handlers.index do |e|
 				e.catch_type.zero? ||
 						@jvm.type_equal_or_superclass?(
 								exception.jvmclass,
 								@jvm.load_class(
-										frame.jvmclass.class_file.get_attrib_name(e.catch_type)
+										@current_frame.jvmclass.class_file.get_attrib_name(e.catch_type)
 								)
 						)
 		end
