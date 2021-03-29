@@ -82,6 +82,21 @@ class AttributeLoader
 		@class_file = class_file
 	end
 
+	def load
+		attribs = {}
+		@parser.load_u2.times do
+			a = load_one_attribute
+			if attribs.key? a.class
+				attribs[a.class] << a
+			else
+				attribs[a.class] = [a]
+			end
+		end
+		attribs
+	end
+
+		private
+
 	def read_constantvalue_attribute
 		a = ClassAttributeConstantValue.new
 		a.constantvalue_index = @parser.load_u2
@@ -189,18 +204,5 @@ class AttributeLoader
 		end
 		a.attribute_name_index = attribute_name_index
 		a
-	end
-
-	def load
-		attribs = {}
-		@parser.load_u2.times do
-			a = load_one_attribute
-			if attribs.key? a.class
-				attribs[a.class] << a
-			else
-				attribs[a.class] = [a]
-			end
-		end
-		attribs
 	end
 end

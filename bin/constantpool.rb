@@ -53,6 +53,36 @@ class ConstantPoolLoader
 		@parser = parser
 	end
 
+	def load
+		pool = [nil]
+		constant_pool_count = @parser.load_u2 - 1
+		tag = nil
+		constant_pool_count.times do
+			if [5, 6].include? tag
+				pool << nil
+				tag = nil
+			else
+				tag = @parser.load_u1
+				case tag
+				when 1
+					v = read_constant_utf8 tag
+				when 3, 4
+					v = read_constant_int_or_float tag
+				when 5, 6
+					v = read_constant_long_or_double tag
+				when 7, 8
+					v = read_constant_string tag
+				when 9, 10, 11, 12
+					v = read_constant_name_and_type tag
+				end
+				pool << v
+			end
+		end
+		pool
+	end
+
+		private
+
 	def read_constant_utf8 tag
 		ConstantPoolConstantValueInfo.new tag, @parser.load_string(@parser.load_u2)
 	end
@@ -91,33 +121,5 @@ class ConstantPoolLoader
 
 	def read_constant_name_and_type tag
 		ConstantPoolConstantIndex2Info.new tag, @parser.load_u2, @parser.load_u2
-	end
-
-	def load
-		pool = [nil]
-		constant_pool_count = @parser.load_u2 - 1
-		tag = nil
-		constant_pool_count.times do
-			if [5, 6].include? tag
-				pool << nil
-				tag = nil
-			else
-				tag = @parser.load_u1
-				case tag
-				when 1
-					v = read_constant_utf8 tag
-				when 3, 4
-					v = read_constant_int_or_float tag
-				when 5, 6
-					v = read_constant_long_or_double tag
-				when 7, 8
-					v = read_constant_string tag
-				when 9, 10, 11, 12
-					v = read_constant_name_and_type tag
-				end
-				pool << v
-			end
-		end
-		pool
 	end
 end

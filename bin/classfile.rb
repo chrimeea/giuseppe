@@ -105,10 +105,6 @@ class ClassLoader
 		@pool_loader = ConstantPoolLoader.new(@parser)
 	end
 
-	def load_interfaces
-		@parser.load_u2_array(@parser.load_u2)
-	end
-
 	def load
 		$logger.info "Loading #{@name}"
 		@class_file.magic = @parser.load_u4
@@ -123,6 +119,12 @@ class ClassLoader
 		@class_file.methods = @field_loader.load
 		@class_file.attributes = @attribute_loader.load
 		@class_file
+	end
+
+		private
+
+	def load_interfaces
+		@parser.load_u2_array(@parser.load_u2)
 	end
 
 	def class_path class_type
