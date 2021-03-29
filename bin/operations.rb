@@ -317,6 +317,52 @@ class OperationDispatcher
 		@ops = Operations.new jvm
 	end
 
+	def interpret opcode
+		case opcode
+		when 0
+		when 1..15
+			case_aconst opcode
+		when 16, 18, 20..46, 50, 51
+			case_iload opcode
+		when 54..79, 83, 84
+			case_istore opcode
+		when 87
+			@frame.stack.pop
+		when 89
+			@ops.op_dup
+		when 96..111
+			case_math opcode
+		when 120, 122
+			case_ish opcode
+		when 126, 128, 130
+			case_boolean opcode
+		when 132
+			@ops.op_iinc
+		when 133..141, 145, 146, 147
+			case_conversion opcode
+		when 153..167, 198, 199
+			case_goto opcode
+		when 178..181
+			case_field opcode
+		when 182..185
+			@ops.op_invoke opcode
+		when 187
+			@ops.op_newobject
+		when 188..190, 197
+			case_array opcode
+		when 191
+			@ops.op_athrow
+		when 192
+			@ops.op_checkcast
+		when 193
+			@ops.op_instanceof
+		else
+			fail "Unsupported opcode #{opcode}"
+		end
+	end
+
+		private
+
 	def case_array opcode
 		case opcode
 		when 188
@@ -519,50 +565,6 @@ class OperationDispatcher
 			@ops.op_aconst 1.0
 		when 13
 			@ops.op_aconst 2.0
-		end
-	end
-
-	def interpret opcode
-		case opcode
-		when 0
-		when 1..15
-			case_aconst opcode
-		when 16, 18, 20..46, 50, 51
-			case_iload opcode
-		when 54..79, 83, 84
-			case_istore opcode
-		when 87
-			@frame.stack.pop
-		when 89
-			@ops.op_dup
-		when 96..111
-			case_math opcode
-		when 120, 122
-			case_ish opcode
-		when 126, 128, 130
-			case_boolean opcode
-		when 132
-			@ops.op_iinc
-		when 133..141, 145, 146, 147
-			case_conversion opcode
-		when 153..167, 198, 199
-			case_goto opcode
-		when 178..181
-			case_field opcode
-		when 182..185
-			@ops.op_invoke opcode
-		when 187
-			@ops.op_newobject
-		when 188..190, 197
-			case_array opcode
-		when 191
-			@ops.op_athrow
-		when 192
-			@ops.op_checkcast
-		when 193
-			@ops.op_instanceof
-		else
-			fail "Unsupported opcode #{opcode}"
 		end
 	end
 end

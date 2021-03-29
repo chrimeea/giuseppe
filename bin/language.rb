@@ -9,10 +9,6 @@ class JavaInstance
 		@fields = {}
 	end
 
-	def field_id jvmclass, field
-		"#{jvmclass.class_type}.#{field.field_name}"
-	end
-
 	def set_field jvmclass, field, value
 		@fields[field_id(jvmclass, field)] = value
 	end
@@ -23,6 +19,12 @@ class JavaInstance
 
 	def class_reference?
 		@jvmclass.nil?
+	end
+
+		private
+
+	def field_id jvmclass, field
+		"#{jvmclass.class_type}.#{field.field_name}"
 	end
 end
 

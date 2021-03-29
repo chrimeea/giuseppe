@@ -63,19 +63,17 @@ class Scheduler
 	def run jvmclass, method, params
 		frame = @current_frame
 		@current_frame = Frame.new(@jvm.resolve_method(jvmclass, method), method, params, frame)
-		run_and_return
+		$logger.debug('jvm.rb') { "#{jvmclass.class_type}, #{method.method_name}" }
+		if @current_frame.native?
+			send method.native_name(jvmclass), @jvm, @current_frame.locals
+		else
+			loop_code
+		end
 	ensure
 		@current_frame = frame
 	end
 
-	def run_and_return
-		$logger.debug('jvm.rb') { "#{@current_frame.jvmclass.class_type}, #{@current_frame.method.method_name}" }
-		if @current_frame.native?
-			send @current_frame.method.native_name(@current_frame.jvmclass), @jvm, @current_frame.locals
-		else
-			loop_code
-		end
-	end
+		private
 
 	def loop_code
 		$logger.debug('jvm.rb') { @current_frame.code_attr.code.to_s }
@@ -182,6 +180,8 @@ class Resolver
 		end
 	end
 
+		private
+
 	def superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
 		return true if
 				jvmclass_a.super_class &&
@@ -236,19 +236,6 @@ class Allocator
 		)
 	end
 
-	def initialize_fields_for reference, jvmclass
-		static = reference.class_reference?
-		jvmclass.fields
-				.select { |_, f| static == !f.access_flags.static?.nil? }
-				.each { |f, _| @jvm.set_field(reference, jvmclass, f, f.default_value) }
-		return reference if static || jvmclass.super_class.nil?
-		initialize_fields_for(reference, load_class(jvmclass.super_class))
-	end
-
-	def initialize_static_fields_for jvmclass
-		initialize_fields_for jvmclass.reference, jvmclass
-	end
-
 	def load_class class_type
 		if @classes.key? class_type
 			@classes[class_type]
@@ -263,6 +250,21 @@ class Allocator
 			end
 			jvmclass
 		end
+	end
+
+		private
+
+	def initialize_fields_for reference, jvmclass
+		static = reference.class_reference?
+		jvmclass.fields
+				.select { |_, f| static == !f.access_flags.static?.nil? }
+				.each { |f, _| @jvm.set_field(reference, jvmclass, f, f.default_value) }
+		return reference if static || jvmclass.super_class.nil?
+		initialize_fields_for(reference, load_class(jvmclass.super_class))
+	end
+
+	def initialize_static_fields_for jvmclass
+		initialize_fields_for jvmclass.reference, jvmclass
 	end
 end
 
