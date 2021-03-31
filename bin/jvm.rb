@@ -154,7 +154,6 @@ class Resolver
 			reference_jvmclass != method.jvmclass &&
 			type_equal_or_superclass?(reference_jvmclass, method.jvmclass)
 			method.jvmclass = @jvm.load_class(reference_jvmclass.super_class)
-			resolve_method!(method)
 		end
 		method
 	end

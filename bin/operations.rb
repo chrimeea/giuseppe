@@ -207,16 +207,13 @@ class Operations
 		params = []
 		args_count = method.args.size
 		args_count.times { params.push @frame.stack.pop }
-		if opcode == 184
-			@jvm.resolve_method!(method)
-		else
+		if opcode != 184
 			reference = @frame.stack.pop
 			params.push reference
 			if opcode == 183
 				@jvm.resolve_special_method!(reference.jvmclass, method)
 			else
 				method.jvmclass = reference.jvmclass
-				@jvm.resolve_method!(method)
 			end
 		end
 		if opcode == 185
