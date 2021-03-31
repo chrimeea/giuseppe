@@ -95,10 +95,14 @@ class Scheduler
 			rescue JVMError => e
 				handle_exception e.exception
 			rescue ZeroDivisionError
-				handle_exception @jvm.new_java_object_with_constructor(JavaMethod.new(@jvm.load_class('java/lang/ArithmeticException')))
+				handle_exception @jvm.new_java_object_with_constructor(
+						JavaMethod.new(@jvm.load_class('java/lang/ArithmeticException'))
+				)
 			rescue NoMethodError => e
 				raise e if e.receiver
-				handle_exception @jvm.new_java_object_with_constructor(JavaMethod.new(@jvm.load_class('java/lang/NullPointerException')))
+				handle_exception @jvm.new_java_object_with_constructor(
+						JavaMethod.new(@jvm.load_class('java/lang/NullPointerException'))
+				)
 			end
 		end
 	end
