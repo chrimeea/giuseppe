@@ -27,16 +27,16 @@ class Operations
 
 	def op_ldc
 		index = @frame.next_instruction
-		attrib = @frame.jvmclass.class_file.constant_pool[index]
+		attrib = @frame.constant_pool[index]
 		case attrib
 		when ConstantPoolConstantValueInfo
 			@frame.stack.push attrib.value
 		when ConstantPoolConstantIndex1Info
-			value = @frame.jvmclass.class_file.constant_pool[attrib.index1].value
+			value = @frame.constant_pool[attrib.index1].value
 			if attrib.string?
 				reference = @jvm.new_java_string(value)
-				method = JavaMethod.new('intern', '()Ljava/lang/String;')
-				@frame.stack.push @jvm.run(reference.jvmclass, method, [reference])
+				method = JavaMethod.new(reference.jvmclass, 'intern', '()Ljava/lang/String;')
+				@frame.stack.push @jvm.run(method, [reference])
 			else
 				@frame.stack.push @jvm.new_java_class(value)
 			end
@@ -50,7 +50,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		@frame.stack.push @frame.jvmclass.class_file.constant_pool[index].value
+		@frame.stack.push @frame.constant_pool[index].value
 	end
 
 	def op_iload index
@@ -160,8 +160,8 @@ class Operations
 				@frame.next_instruction
 		)
 		details = @frame.constant_pool.class_and_name_and_type(field_index)
-		field = JavaField.new(details.field_name, details.field_type)
-		@frame.stack.push @jvm.get_static_field(@jvm.load_class(details.class_type), field)
+		field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+		@frame.stack.push @jvm.get_static_field(field)
 	end
 
 	def op_putstatic
@@ -170,8 +170,8 @@ class Operations
 				@frame.next_instruction
 		)
 		details = @frame.constant_pool.class_and_name_and_type(field_index)
-		field = JavaField.new(details.field_name, details.field_type)
-		@jvm.set_static_field(@jvm.load_class(details.class_type), field, @frame.stack.pop)
+		field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+		@jvm.set_static_field(field, @frame.stack.pop)
 	end
 
 	def op_getfield
@@ -181,8 +181,8 @@ class Operations
 		)
 		details = @frame.constant_pool.class_and_name_and_type(field_index)
 		reference = @frame.stack.pop
-		field = JavaField.new(details.field_name, details.field_type)
-		@frame.stack.push @jvm.get_field(reference, @jvm.load_class(details.class_type), field)
+		field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+		@frame.stack.push @jvm.get_field(reference, field)
 	end
 
 	def op_putfield
@@ -193,8 +193,8 @@ class Operations
 		details = @frame.constant_pool.class_and_name_and_type(field_index)
 		value = @frame.stack.pop
 		reference = @frame.stack.pop
-		field = JavaField.new(details.field_name, details.field_type)
-		@jvm.set_field(reference, @jvm.load_class(details.class_type), field, value)
+		field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+		@jvm.set_field(reference, field, value)
 	end
 
 	def op_invoke opcode
@@ -203,30 +203,27 @@ class Operations
 				@frame.next_instruction
 		)
 		details = @frame.constant_pool.class_and_name_and_type(method_index)
-		method = JavaMethod.new(details.field_name, details.field_type)
+		method = JavaMethod.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 		params = []
 		args_count = method.args.size
 		args_count.times { params.push @frame.stack.pop }
 		if opcode == 184
-			jvmclass = @jvm.resolve_method(@jvm.load_class(details.class_type), method)
+			@jvm.resolve_method!(method)
 		else
 			reference = @frame.stack.pop
 			params.push reference
-			jvmclass = if opcode == 183
-							@jvm.resolve_special_method(
-									reference.jvmclass,
-									@jvm.load_class(details.class_type),
-									method
-							)
-						else
-							@jvm.resolve_method(reference.jvmclass, method)
-						end
+			if opcode == 183
+				@jvm.resolve_special_method!(reference.jvmclass, method)
+			else
+				method.jvmclass = reference.jvmclass
+				@jvm.resolve_method!(method)
+			end
 		end
 		if opcode == 185
 			@frame.next_instruction
 			@frame.next_instruction
 		end
-		result = @jvm.run(jvmclass, method, params.reverse)
+		result = @jvm.run(method, params.reverse)
 		@frame.stack.push result if method.return_value?
 	end
 
@@ -275,7 +272,7 @@ class Operations
 						reference.jvmclass,
 						@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index))
 				)
-		raise JVMError, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ClassCastException'))
+		raise JVMError, @jvm.new_java_object_with_constructor(JavaMethod.new(@jvm.load_class('java/lang/ClassCastException')))
 	end
 
 	def op_instanceof

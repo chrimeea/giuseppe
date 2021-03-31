@@ -9,12 +9,12 @@ class JavaInstance
 		@fields = {}
 	end
 
-	def set_field jvmclass, field, value
-		@fields[field_id(jvmclass, field)] = value
+	def set_field field, value
+		@fields[field_id(field)] = value
 	end
 
-	def get_field jvmclass, field
-		@fields[field_id(jvmclass, field)]
+	def get_field field
+		@fields[field_id(field)]
 	end
 
 	def class_reference?
@@ -23,8 +23,8 @@ class JavaInstance
 
 		private
 
-	def field_id jvmclass, field
-		"#{jvmclass.class_type}.#{field.field_name}"
+	def field_id field
+		"#{field.jvmclass.class_type}.#{field.field_name}"
 	end
 end
 
@@ -60,6 +60,7 @@ class JavaClass
 		@class_file = value
 		value.fields.each do |f|
 			field = JavaField.new(
+					self,
 					@class_file.constant_pool[f.name_index].value,
 					@class_file.constant_pool[f.descriptor_index].value
 			)
@@ -68,6 +69,7 @@ class JavaClass
 		end
 		value.methods.each do |m|
 			method = JavaMethod.new(
+					self,
 					value.constant_pool[m.name_index].value,
 					value.constant_pool[m.descriptor_index].value
 			)
@@ -114,8 +116,10 @@ end
 # An unresolved java field as name and type
 class JavaField
 	attr_reader :field_name, :field_type
+	attr_accessor :jvmclass
 
-	def initialize field_name, field_type
+	def initialize jvmclass, field_name, field_type
+		@jvmclass = jvmclass
 		@field_name = field_name
 		@field_type = field_type
 	end
@@ -133,14 +137,16 @@ class JavaField
 	end
 end
 
-# An unesolved java method as name and type
+# An unresolved java method as name and type
 class JavaMethod
 	attr_reader :method_name, :method_type, :args, :attrib, :retval
+	attr_accessor :jvmclass
 
-	def initialize method_name, method_type
+	def initialize jvmclass, method_name = nil, method_type = nil
+		@jvmclass = jvmclass
 		@method_name = method_name
 		@method_type = method_type
-		parse_type_descriptors
+		parse_type_descriptors if method_type
 	end
 
 	def hash

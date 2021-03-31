@@ -10,10 +10,9 @@ class Frame
 	attr_reader :jvmclass, :stack, :locals, :code_attr, :method, :parent_frame
 	attr_accessor :pc
 
-	def initialize jvmclass, method, params, parent_frame
-		method_attr = jvmclass.methods[method]
+	def initialize method, params, parent_frame
+		method_attr = method.jvmclass.methods[method]
 		fail "Unknown method #{method.method_name}" unless method_attr
-		@jvmclass = jvmclass
 		@method = method
 		@pc = 0
 		@parent_frame = parent_frame
@@ -28,11 +27,11 @@ class Frame
 	end
 
 	def constant_pool
-		@jvmclass.class_file.constant_pool
+		@method.jvmclass.class_file.constant_pool
 	end
 
 	def native?
-		jvmclass.methods[method].access_flags.native?
+		@method.jvmclass.methods[method].access_flags.native?
 	end
 
 	def next_instruction
@@ -64,12 +63,12 @@ class Scheduler
 		@current_frame = nil
 	end
 
-	def run jvmclass, method, params
+	def run method, params
 		frame = @current_frame
-		@current_frame = Frame.new(@jvm.resolve_method(jvmclass, method), method, params, frame)
+		@current_frame = Frame.new(@jvm.resolve_method!(method), params, frame)
 		$logger.debug('jvm.rb') { "#{jvmclass.class_type}, #{method.method_name}" }
 		if @current_frame.native?
-			send method.native_name(jvmclass), @jvm, @current_frame.locals
+			send method.native_name(method.jvmclass), @jvm, @current_frame.locals
 		else
 			loop_code
 		end
@@ -96,10 +95,10 @@ class Scheduler
 			rescue JVMError => e
 				handle_exception e.exception
 			rescue ZeroDivisionError
-				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ArithmeticException'))
+				handle_exception @jvm.new_java_object_with_constructor(JavaMethod.new(@jvm.load_class('java/lang/ArithmeticException')))
 			rescue NoMethodError => e
 				raise e if e.receiver
-				handle_exception @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/NullPointerException'))
+				handle_exception @jvm.new_java_object_with_constructor(JavaMethod.new(@jvm.load_class('java/lang/NullPointerException')))
 			end
 		end
 	end
@@ -132,44 +131,41 @@ class Resolver
 		@jvm = jvm
 	end
 
-	def resolve_field jvmclass, field
-		if jvmclass.resolved.key? field
-			jvmclass.resolved[field]
-		elsif jvmclass.super_class
-			jvmclass.resolved[field] = resolve_field(
-					@jvm.load_class(jvmclass.super_class),
-					field
-			)
+	def resolve_field! field
+		if field.jvmclass.resolved.key? field
+			field.jvmclass = field.jvmclass.resolved[field]
+		elsif field.jvmclass.super_class
+			field.jvmclass = @jvm.load_class(field.jvmclass.super_class)
+			resolve_field!(field)
+			field.jvmclass.resolved[field] = field.jvmclass
 		else
 			fail "Unknown field #{field.field_name}"
 		end
+		field
 	end
 
-	def resolve_special_method reference_jvmclass, method_jvmclass, method
+	def resolve_special_method! reference_jvmclass, method
 		if reference_jvmclass.class_file.access_flags.super? &&
 			method.method_name != '<init>' &&
-			reference_jvmclass != method_jvmclass &&
-			type_equal_or_superclass?(reference_jvmclass, method_jvmclass)
-			resolve_method(
-					@jvm.load_class(reference_jvmclass.super_class),
-					method
-			)
-		else
-			method_jvmclass
+			reference_jvmclass != method.jvmclass &&
+			type_equal_or_superclass?(reference_jvmclass, method.jvmclass)
+			method.jvmclass = @jvm.load_class(reference_jvmclass.super_class)
+			resolve_method!(method)
 		end
+		method
 	end
 
-	def resolve_method jvmclass, method
-		if jvmclass.resolved.key? method
-			jvmclass.resolved[method]
-		elsif jvmclass.super_class
-			jvmclass.resolved[method] = resolve_method(
-					@jvm.load_class(jvmclass.super_class),
-					method
-			)
+	def resolve_method! method
+		if method.jvmclass.resolved.key? method
+			method.jvmclass = method.jvmclass.resolved[method]
+		elsif method.jvmclass.super_class
+			method.jvmclass = @jvm.load_class(method.jvmclass.super_class)
+			resolve_method!(method)
+			method.jvmclass.resolved[method] = method.jvmclass
 		else
 			fail "Unknown method #{method.method_name} #{method.method_type}"
 		end
+		method
 	end
 
 	def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
@@ -210,8 +206,8 @@ class Allocator
 	end
 
 	def java_to_native_string reference
-		method = JavaMethod.new('getBytes', '()[B')
-		arrayref = @jvm.run(reference.jvmclass, method, [reference])
+		method = JavaMethod.new(reference.jvmclass, 'getBytes', '()[B')
+		arrayref = @jvm.run(method, [reference])
 		arrayref.values.pack('c*')
 	end
 
@@ -220,7 +216,7 @@ class Allocator
 		stringref = new_java_object jvmclass
 		arrayref = new_java_array load_class('[B'), [value.chars.size]
 		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
-		@jvm.run(jvmclass, JavaMethod.new('<init>', '([B)V'), [stringref, arrayref])
+		@jvm.run(JavaMethod.new(jvmclass, '<init>', '([B)V'), [stringref, arrayref])
 		stringref
 	end
 
@@ -234,8 +230,7 @@ class Allocator
 
 	def new_java_class name
 		@jvm.run(
-				load_class('java/lang/Class'),
-				JavaMethod.new('forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
+				JavaMethod.new(load_class('java/lang/Class'), 'forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
 				[new_java_string(name)]
 		)
 	end
@@ -249,8 +244,8 @@ class Allocator
 			unless jvmclass.array? || jvmclass.primitive?
 				jvmclass.class_file = ClassLoader.new(class_type).load
 				initialize_static_fields_for jvmclass
-				clinit = JavaMethod.new('<clinit>', '()V')
-				@jvm.run(jvmclass, clinit, []) if jvmclass.methods.include?(clinit)
+				clinit = JavaMethod.new(jvmclass, '<clinit>', '()V')
+				@jvm.run(clinit, []) if jvmclass.methods.include?(clinit)
 			end
 			jvmclass
 		end
@@ -262,7 +257,7 @@ class Allocator
 		static = reference.class_reference?
 		jvmclass.fields
 				.select { |_, f| static == !f.access_flags.static?.nil? }
-				.each { |f, _| @jvm.set_field(reference, jvmclass, f, f.default_value) }
+				.each { |f, _| @jvm.set_field(reference, f, f.default_value) }
 		return reference if static || jvmclass.super_class.nil?
 		initialize_fields_for(reference, load_class(jvmclass.super_class))
 	end
@@ -290,20 +285,21 @@ class JVM
 
 	def check_array_index reference, index
 		return if index >= 0 && index < reference.values.size
-		raise JVMError, new_java_object_with_constructor(load_class('java/lang/ArrayIndexOutOfBoundsException'))
+		raise JVMError, new_java_object_with_constructor(JavaMethod.new(load_class('java/lang/ArrayIndexOutOfBoundsException')))
 	end
 
-	def run jvmclass, method, params
-		@scheduler.run jvmclass, method, params
+	def run method, params
+		@scheduler.run method, params
 	end
 
 	def new_java_object jvmclass
 		@allocator.new_java_object jvmclass
 	end
 
-	def new_java_object_with_constructor jvmclass, method = JavaMethod.new('<init>', '()V'), params = []
-		reference = @allocator.new_java_object jvmclass
-		run jvmclass, method, [reference] + params
+	def new_java_object_with_constructor method, params = []
+		method = JavaMethod.new(method.jvmclass, '<init>', '()V') unless method.method_name
+		reference = @allocator.new_java_object method.jvmclass
+		run method, [reference] + params
 		reference
 	end
 
@@ -323,28 +319,28 @@ class JVM
 		@allocator.java_to_native_string reference
 	end
 
-	def resolve_method jvmclass, method
-		@resolver.resolve_method jvmclass, method
+	def resolve_method! method
+		@resolver.resolve_method! method
 	end
 
-	def resolve_special_method reference_jvmclass, method_jvmclass, method
-		@resolver.resolve_special_method reference_jvmclass, method_jvmclass, method
+	def resolve_special_method! reference_jvmclass, method
+		@resolver.resolve_special_method! reference_jvmclass, method
 	end
 
-	def get_field reference, jvmclass, field
-		reference.get_field(@resolver.resolve_field(jvmclass, field), field)
+	def get_field reference, field
+		reference.get_field(@resolver.resolve_field!(field))
 	end
 
-	def get_static_field jvmclass, field
-		jvmclass.reference.get_field(@resolver.resolve_field(jvmclass, field), field)
+	def get_static_field field
+		field.jvmclass.reference.get_field(@resolver.resolve_field!(field))
 	end
 
-	def set_field reference, jvmclass, field, value
-		reference.set_field(@resolver.resolve_field(jvmclass, field), field, value)
+	def set_field reference, field, value
+		reference.set_field(@resolver.resolve_field!(field), value)
 	end
 
-	def set_static_field jvmclass, field, value
-		jvmclass.reference.set_field(@resolver.resolve_field(jvmclass, field), field, value)
+	def set_static_field field, value
+		field.jvmclass.reference.set_field(@resolver.resolve_field!(field), value)
 	end
 
 	def type_equal_or_superclass?(jvmclass_a, jvmclass_b)

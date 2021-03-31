@@ -11,9 +11,9 @@ class Program
 	end
 
 	def run class_type
-		@jvm.run @jvm.load_class(class_type), JavaMethod.new('main', '([Ljava/lang/String;)V'), [java_array_with_args]
+		@jvm.run JavaMethod.new(@jvm.load_class(class_type), 'main', '([Ljava/lang/String;)V'), [java_array_with_args]
 	rescue JVMError => e
-		@jvm.run e.exception.jvmclass, JavaMethod.new('printStackTrace', '()V'), [e.exception]
+		@jvm.run JavaMethod.new(e.exception.jvmclass, 'printStackTrace', '()V'), [e.exception]
 	end
 
 		private
