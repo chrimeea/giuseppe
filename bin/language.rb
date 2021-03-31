@@ -74,13 +74,13 @@ class JavaClass
 			@methods[method] = m
 			@resolved[method] = self
 		end
-		@interfaces = value.interfaces.map { |i| @class_file.get_attrib_name i }
+		@interfaces = value.interfaces.map { |i| @class_file.constant_pool.get_attrib_value i }
 	end
 
 	def super_class
 		return 'java/lang/Object' if primitive? || array?
 		return if @class_file.super_class.zero?
-		@class_file.get_attrib_name @class_file.super_class
+		@class_file.constant_pool.get_attrib_value @class_file.super_class
 	end
 
 	def source_file

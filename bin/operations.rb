@@ -159,7 +159,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
+		details = @frame.constant_pool.class_and_name_and_type(field_index)
 		field = JavaField.new(details.field_name, details.field_type)
 		@frame.stack.push @jvm.get_static_field(@jvm.load_class(details.class_type), field)
 	end
@@ -169,7 +169,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
+		details = @frame.constant_pool.class_and_name_and_type(field_index)
 		field = JavaField.new(details.field_name, details.field_type)
 		@jvm.set_static_field(@jvm.load_class(details.class_type), field, @frame.stack.pop)
 	end
@@ -179,7 +179,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
+		details = @frame.constant_pool.class_and_name_and_type(field_index)
 		reference = @frame.stack.pop
 		field = JavaField.new(details.field_name, details.field_type)
 		@frame.stack.push @jvm.get_field(reference, @jvm.load_class(details.class_type), field)
@@ -190,7 +190,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		details = @frame.jvmclass.class_file.class_and_name_and_type(field_index)
+		details = @frame.constant_pool.class_and_name_and_type(field_index)
 		value = @frame.stack.pop
 		reference = @frame.stack.pop
 		field = JavaField.new(details.field_name, details.field_type)
@@ -202,7 +202,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		details = @frame.jvmclass.class_file.class_and_name_and_type(method_index)
+		details = @frame.constant_pool.class_and_name_and_type(method_index)
 		method = JavaMethod.new(details.field_name, details.field_type)
 		params = []
 		args_count = method.args.size
@@ -235,7 +235,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		@frame.stack.push @jvm.new_java_object(@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index)))
+		@frame.stack.push @jvm.new_java_object(@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)))
 	end
 
 	def op_newarray
@@ -250,7 +250,7 @@ class Operations
 				@frame.next_instruction,
 				@frame.next_instruction
 		)
-		array_type = "[#{@frame.jvmclass.class_file.get_attrib_name(class_index)}"
+		array_type = "[#{@frame.constant_pool.get_attrib_value(class_index)}"
 		count = @frame.stack.pop
 		@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type), [count])
 	end
@@ -273,7 +273,7 @@ class Operations
 		return unless reference &&
 				!@jvm.type_equal_or_superclass?(
 						reference.jvmclass,
-						@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index))
+						@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index))
 				)
 		raise JVMError, @jvm.new_java_object_with_constructor(@jvm.load_class('java/lang/ClassCastException'))
 	end
@@ -287,7 +287,7 @@ class Operations
 		if reference
 			@frame.stack.push(@jvm.type_equal_or_superclass?(
 					reference.jvmclass,
-					@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index))
+					@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index))
 			) ? 1 : 0)
 		else
 			@frame.stack.push 0
@@ -303,7 +303,7 @@ class Operations
 		counts = []
 		dimensions.times { counts << @frame.stack.pop }
 		@frame.stack.push @jvm.new_java_array(
-				@jvm.load_class(@frame.jvmclass.class_file.get_attrib_name(class_index)),
+				@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)),
 				counts.reverse
 		)
 	end

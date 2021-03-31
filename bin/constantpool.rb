@@ -59,6 +59,19 @@ class ConstantPool
 	def << value
 		@pool << value
 	end
+
+	def get_attrib_value index
+		@pool[@pool[index].index1].value
+	end
+
+	def class_and_name_and_type index
+		attrib = @pool[index]
+		class_type = get_attrib_value(attrib.index1)
+		attrib = @pool[attrib.index2]
+		field_name = @pool[attrib.index1].value
+		field_type = @pool[attrib.index2].value
+		Struct.new(:class_type, :field_name, :field_type).new(class_type, field_name, field_type)
+	end
 end
 
 # Parses the constant pool from a class file

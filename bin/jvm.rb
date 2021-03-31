@@ -27,6 +27,10 @@ class Frame
 		end
 	end
 
+	def constant_pool
+		@jvmclass.class_file.constant_pool
+	end
+
 	def native?
 		jvmclass.methods[method].access_flags.native?
 	end
@@ -114,7 +118,7 @@ class Scheduler
 						@jvm.type_equal_or_superclass?(
 								exception.jvmclass,
 								@jvm.load_class(
-										@current_frame.jvmclass.class_file.get_attrib_name(e.catch_type)
+										@current_frame.constant_pool.get_attrib_value(e.catch_type)
 								)
 						)
 		end
