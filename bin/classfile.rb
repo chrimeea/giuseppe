@@ -73,7 +73,7 @@ class ClassFile
 					:this_class, :super_class, :access_flags
 
 	def initialize
-		@constant_pool = [nil]
+		@constant_pool = ConstantPool.new
 		@interfaces = []
 		@attributes = []
 		@fields = []
