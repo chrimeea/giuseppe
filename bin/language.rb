@@ -96,12 +96,7 @@ class JavaClass
 	end
 
 	def element_type
-		t = @class_type.delete('[')
-		if t[0] == 'L'
-			t[1..-2]
-		else
-			t
-		end
+		@class_type.delete('[')
 	end
 
 	def array?
@@ -110,6 +105,10 @@ class JavaClass
 
 	def dimensions
 		@class_type.count '['
+	end
+
+	def class_name
+		if @class_type[0] == 'L' then @class_type[1..-2] else @class_type end
 	end
 end
 
@@ -189,7 +188,7 @@ class JavaMethod
 	end
 
 	def native_name jvmclass
-		n = jvmclass.class_type.gsub('/', '_')
+		n = jvmclass.class_name.gsub('/', '_')
 		i = n.rindex('_')
 		if i
 			n[i] = '_jni_'

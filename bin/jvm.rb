@@ -175,8 +175,8 @@ class Resolver
 		return true if jvmclass_a.class_type == jvmclass_b.class_type
 		if jvmclass_a.array? && jvmclass_b.array?
 			return false if jvmclass_a.dimensions != jvmclass_b.dimensions
-			jvmclass_a = @jvm.load_class class_type_a.element_type
-			jvmclass_b = @jvm.load_class class_type_b.element_type
+			jvmclass_a = @jvm.load_class class_type_a.element_type, descriptor: true
+			jvmclass_b = @jvm.load_class class_type_b.element_type, descriptor: true
 			type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		else
 			superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
@@ -238,14 +238,15 @@ class Allocator
 		)
 	end
 
-	def load_class class_type
+	def load_class class_type, descriptor: false
+		class_type = "L#{class_type};" unless descriptor || class_type.chr == '['
 		if @classes.key? class_type
 			@classes[class_type]
 		else
 			jvmclass = JavaClass.new(JavaInstance.new, class_type)
 			@classes[class_type] = jvmclass
 			unless jvmclass.array? || jvmclass.primitive?
-				jvmclass.class_file = ClassLoader.new(class_type).load
+				jvmclass.class_file = ClassLoader.new(jvmclass.class_name).load
 				initialize_static_fields_for jvmclass
 				clinit = JavaMethod.new(jvmclass, '<clinit>', '()V')
 				@jvm.run(clinit, []) if jvmclass.methods.include?(clinit)
@@ -282,8 +283,8 @@ class JVM
 		@scheduler.current_frame
 	end
 
-	def load_class class_type
-		@allocator.load_class class_type
+	def load_class class_type, descriptor: false
+		@allocator.load_class class_type, descriptor: descriptor
 	end
 
 	def check_array_index reference, index

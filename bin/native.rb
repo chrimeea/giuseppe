@@ -18,7 +18,7 @@ def Java_lang_jni_Object_hashCode _, params
 end
 
 def Java_lang_jni_Object_getClass jvm, params
-	jvm.new_java_class params.first.jvmclass.class_type
+	jvm.new_java_class params.first.jvmclass.class_name
 end
 
 def Java_lang_jni_String_valueOf jvm, params
@@ -56,7 +56,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 						'<init>',
 						'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'
 				),
-				[jvm.new_java_string(frame.method.jvmclass.class_type),
+				[jvm.new_java_string(frame.method.jvmclass.class_name),
 					jvm.new_java_string(frame.method.method_name),
 					jvm.new_java_string(frame.method.jvmclass.source_file),
 					if frame.native? then 0 else frame.code_attr.line_number_for(frame.pc) end]
