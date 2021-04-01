@@ -25,6 +25,15 @@ class Operations
 		@frame.stack.push BinaryParser.to_signed(@frame.next_instruction, 1)
 	end
 
+	def op_sipush
+		@frame.stack.push BinaryParser.to_signed(
+				BinaryParser.to_16bit_unsigned(
+						@frame.next_instruction,
+						@frame.next_instruction),
+				2
+		)
+	end
+
 	def op_ldc
 		index = @frame.next_instruction
 		attrib = @frame.constant_pool[index]
@@ -316,7 +325,7 @@ class OperationDispatcher
 		when 0
 		when 1..15
 			case_aconst opcode
-		when 16, 18, 20..46, 50, 51
+		when 16..18, 20..46, 50, 51
 			case_iload opcode
 		when 54..79, 83, 84
 			case_istore opcode
@@ -516,6 +525,8 @@ class OperationDispatcher
 		case opcode
 		when 16
 			@ops.op_bipush
+		when 17
+			@ops.op_sipush
 		when 18
 			@ops.op_ldc
 		when 20
