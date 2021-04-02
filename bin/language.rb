@@ -124,11 +124,11 @@ class JavaField
 	end
 
 	def hash
-		"#{field_name}|#{field_type}".hash
+		"#{@jvmclass.class_type}|#{@field_name}|#{@field_type}".hash
 	end
 
 	def eql? other
-		field_name.eql? other.field_name
+		@jvmclass == other.jvmclass && @field_name.eql?(other.field_name)
 	end
 
 	def default_value
@@ -149,11 +149,13 @@ class JavaMethod
 	end
 
 	def hash
-		"#{method_name}|#{method_type}".hash
+		"#{@jvmclass.class_type}|#{@method_name}|#{@method_type}".hash
 	end
 
 	def eql? other
-		method_name.eql?(other.method_name) && method_type.eql?(other.method_type)
+		@jvmclass == other.jvmclass &&
+				@method_name.eql?(other.method_name) &&
+				@method_type.eql?(other.method_type)
 	end
 
 	def parse_type_descriptors
