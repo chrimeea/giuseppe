@@ -133,19 +133,35 @@ end
 class Resolver
 	def initialize jvm
 		@jvm = jvm
+		@resolved = {}
 	end
 
 	def resolve_field! field
-		if field.jvmclass.resolved.key? field
-			field.jvmclass = field.jvmclass.resolved[field]
-		elsif field.jvmclass.super_class
-			field.jvmclass = @jvm.load_class(field.jvmclass.super_class)
-			resolve_field!(field)
-			field.jvmclass.resolved[field] = field.jvmclass
+		if @resolved.key? field
+			field.jvmclass = @resolved[field]
 		else
-			fail "Unknown field #{field.field_name}"
+			unless field.jvmclass.fields.key?(field)
+				fail "Unknown field #{field.field_name}" unless field.jvmclass.super_class
+				field.jvmclass = @jvm.load_class(field.jvmclass.super_class)
+				resolve_field!(field)
+			end
+			@resolved[field] = field.jvmclass
 		end
 		field
+	end
+
+	def resolve_method! method
+		if @resolved.key? method
+			method.jvmclass = @resolved[method]
+		else
+			unless method.jvmclass.methods.key?(method)
+				fail "Unknown method #{method.method_name} #{method.method_type}" unless method.jvmclass.super_class
+				method.jvmclass = @jvm.load_class(method.jvmclass.super_class)
+				resolve_method!(method)
+			end
+			@resolved[method] = method.jvmclass
+		end
+		method
 	end
 
 	def resolve_special_method! reference_jvmclass, method
@@ -154,19 +170,6 @@ class Resolver
 			reference_jvmclass != method.jvmclass &&
 			type_equal_or_superclass?(reference_jvmclass, method.jvmclass)
 			method.jvmclass = @jvm.load_class(reference_jvmclass.super_class)
-		end
-		method
-	end
-
-	def resolve_method! method
-		if method.jvmclass.resolved.key? method
-			method.jvmclass = method.jvmclass.resolved[method]
-		elsif method.jvmclass.super_class
-			method.jvmclass = @jvm.load_class(method.jvmclass.super_class)
-			resolve_method!(method)
-			method.jvmclass.resolved[method] = method.jvmclass
-		else
-			fail "Unknown method #{method.method_name} #{method.method_type}"
 		end
 		method
 	end

@@ -50,7 +50,6 @@ class JavaClass
 	def initialize reference, class_type
 		@class_type = class_type
 		@reference = reference
-		@resolved = {}
 		@fields = {}
 		@methods = {}
 		@interfaces = []
@@ -65,7 +64,6 @@ class JavaClass
 					@class_file.constant_pool[f.descriptor_index].value
 			)
 			@fields[field] = f
-			@resolved[field] = self
 		end
 		value.methods.each do |m|
 			method = JavaMethod.new(
@@ -74,7 +72,6 @@ class JavaClass
 					value.constant_pool[m.descriptor_index].value
 			)
 			@methods[method] = m
-			@resolved[method] = self
 		end
 		@interfaces = value.interfaces.map { |i| @class_file.constant_pool.get_attrib_value i }
 	end
