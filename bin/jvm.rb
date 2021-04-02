@@ -189,7 +189,7 @@ class Resolver
 		return true if
 				jvmclass_a.super_class &&
 				type_equal_or_superclass?(
-						@jvm.load_class(jvmclass_asuper_class),
+						@jvm.load_class(jvmclass_a.super_class),
 						jvmclass_b
 				)
 		jvmclass_a.interfaces.each.any? do |i|
