@@ -34,6 +34,8 @@ Listing of jvm implementation classes:
 |javaclass                           |
 |javafield                           |
 |javamethod                          |
+|typedescriptor                      |
+|methoddescriptor                    |
 ├------------------------------------┤
 |classfile                           |
 |classfileloader                     |
