@@ -35,6 +35,18 @@ class ConstantPoolConstantIndex2Info < ConstantPoolConstantIndex1Info
 		super tag, index1
 		@index2 = index2
 	end
+
+	def field?
+		@tag == 9
+	end
+
+	def method?
+		@tag == 10
+	end
+
+	def interface?
+		@tag == 11
+	end
 end
 
 # Value constant

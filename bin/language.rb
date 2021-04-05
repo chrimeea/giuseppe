@@ -1,5 +1,107 @@
 # frozen_string_literal: true
 
+# A type descriptor
+class TypeDescriptor
+	def initialize descriptor
+		@descriptor = descriptor
+	end
+
+	def primitive?
+		%w[B C D F I J S Z].include? @descriptor
+	end
+
+	def element_type
+		TypeDescriptor.new @descriptor.delete('[')
+	end
+
+	def array?
+		@descriptor.chr == '['
+	end
+
+	def dimensions
+		@descriptor.count '['
+	end
+
+	def class_name
+		if @descriptor[0] == 'L' then @descriptor[1..-2] else @descriptor end
+	end
+
+	def to_s
+		@descriptor
+	end
+
+	def eql? other
+		@descriptor.eql? other.descriptor
+	end
+
+	def hash
+		@descriptor.hash
+	end
+
+		protected
+
+	attr_reader :descriptor
+end
+
+# A method type descriptor containing arguments and return value
+class MethodDescriptor
+	attr_reader :args, :retval
+
+	def initialize descriptor
+		@descriptor = descriptor
+		parse_type_descriptors
+	end
+
+	def return_value?
+		@retval != 'V'
+	end
+
+	def to_s
+		@descriptor
+	end
+
+	def eql? other
+		@descriptor.eql? other.descriptor
+	end
+
+	def hash
+		@descriptor.hash
+	end
+
+		private
+
+	def parse_type_descriptors
+		pattern = @descriptor.match(/^\(([^)]*)\)(.+)$/)
+		descriptors = pattern[1]
+		i = 0
+		@args = []
+		a = ''
+		while i < descriptors.size
+			case descriptors[i]
+			when 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'
+				@args << a + descriptors[i]
+				a = ''
+			when 'L'
+				j = descriptors.index(';', i)
+				@args << a + descriptors[i..j]
+				i = j
+				a = ''
+			when '['
+				j = i
+				j += 1 while descriptors[j] == '['
+				a += descriptors[i...j]
+				i = j - 1
+			end
+			i += 1
+		end
+		@retval = pattern[2]
+	end
+
+		protected
+
+	attr_reader :descriptor
+end
+
 # An instance of a java object
 class JavaInstance
 	attr_reader :jvmclass
@@ -24,7 +126,7 @@ class JavaInstance
 		private
 
 	def field_id field
-		"#{field.jvmclass.class_type}.#{field.field_name}"
+		"#{field.jvmclass}.#{field.field_name}"
 	end
 end
 
@@ -33,8 +135,8 @@ class JavaInstanceArray < JavaInstance
 	attr_reader :values
 
 	def initialize jvmclass, counts
-		fail unless jvmclass.array?
-		fail unless jvmclass.dimensions == counts.size
+		fail unless jvmclass.descriptor.array?
+		fail unless jvmclass.descriptor.dimensions == counts.size
 		super jvmclass
 		@values = [nil] * counts.pop
 		counts.reverse.each do |c|
@@ -45,10 +147,10 @@ end
 
 # The class of a java object, array or primitve type
 class JavaClass
-	attr_reader :class_type, :reference, :resolved, :class_file, :fields, :methods
+	attr_reader :descriptor, :reference, :class_file, :fields, :methods
 
-	def initialize reference, class_type
-		@class_type = class_type
+	def initialize reference, descriptor
+		@descriptor = descriptor
 		@reference = reference
 		@fields = {}
 		@methods = {}
@@ -77,7 +179,7 @@ class JavaClass
 	end
 
 	def super_class
-		return 'java/lang/Object' if primitive? || array?
+		return 'java/lang/Object' if descriptor.primitive? || descriptor.array?
 		return if @class_file.super_class.zero?
 		@class_file.constant_pool.get_attrib_value @class_file.super_class
 	end
@@ -88,106 +190,70 @@ class JavaClass
 		@class_file.constant_pool[a.first.sourcefile_index].value
 	end
 
-	def primitive?
-		%w[B C D F I J S Z].include? @class_type
+	def hash
+		@descriptor.hash
 	end
 
-	def element_type
-		@class_type.delete('[')
+	def eql? other
+		@descriptor.eql? other.descriptor
 	end
 
-	def array?
-		@class_type.chr == '['
-	end
-
-	def dimensions
-		@class_type.count '['
-	end
-
-	def class_name
-		if @class_type[0] == 'L' then @class_type[1..-2] else @class_type end
+	def to_s
+		@descriptor
 	end
 end
 
 # An unresolved java field as name and type
 class JavaField
-	attr_reader :field_name, :field_type
+	attr_reader :field_name, :descriptor
 	attr_accessor :jvmclass
 
-	def initialize jvmclass, field_name, field_type
+	def initialize jvmclass, field_name, descriptor
 		@jvmclass = jvmclass
 		@field_name = field_name
-		@field_type = field_type
+		@descriptor = TypeDescriptor.new descriptor
 	end
 
 	def hash
-		"#{@jvmclass.class_type}|#{@field_name}|#{@field_type}".hash
+		"#{@jvmclass}|#{@field_name}".hash
 	end
 
 	def eql? other
-		@jvmclass == other.jvmclass && @field_name.eql?(other.field_name)
+		@jvmclass.eql?(other.jvmclass) && @field_name.eql?(other.field_name)
 	end
 
 	def default_value
-		return 0 if %w[B C D F I J S Z].include? @field_type
+		return 0 if @descriptor.primitive?
+	end
+
+	def to_s
+		@field_name
 	end
 end
 
 # An unresolved java method as name and type
 class JavaMethod
-	attr_reader :method_name, :method_type, :args, :attrib, :retval
+	attr_reader :method_name, :descriptor
 	attr_accessor :jvmclass
 
-	def initialize jvmclass, method_name = nil, method_type = nil
+	def initialize jvmclass, method_name = nil, descriptor = nil
 		@jvmclass = jvmclass
 		@method_name = method_name
-		@method_type = method_type
-		parse_type_descriptors if method_type
+		@descriptor = MethodDescriptor.new(descriptor) if descriptor
 	end
 
 	def hash
-		"#{@jvmclass.class_type}|#{@method_name}|#{@method_type}".hash
+		"#{@jvmclass}|#{@method_name}|#{@descriptor}".hash
 	end
 
 	def eql? other
-		@jvmclass == other.jvmclass &&
+		@jvmclass.eql?(other.jvmclass) &&
 				@method_name.eql?(other.method_name) &&
-				@method_type.eql?(other.method_type)
-	end
-
-	def parse_type_descriptors
-		pattern = @method_type.match(/^\(([^)]*)\)(.+)$/)
-		descriptors = pattern[1]
-		i = 0
-		@args = []
-		a = ''
-		while i < descriptors.size
-			case descriptors[i]
-			when 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'
-				@args << a + descriptors[i]
-				a = ''
-			when 'L'
-				j = descriptors.index(';', i)
-				@args << a + descriptors[i..j]
-				i = j
-				a = ''
-			when '['
-				j = i
-				j += 1 while descriptors[j] == '['
-				a += descriptors[i...j]
-				i = j - 1
-			end
-			i += 1
-		end
-		@retval = pattern[2]
-	end
-
-	def return_value?
-		@retval != 'V'
+				@descriptor.eql?(other.descriptor)
 	end
 
 	def native_name jvmclass
-		n = jvmclass.class_name.gsub('/', '_')
+		n = jvmclass.descriptor.class_name.gsub('/', '_')
 		i = n.rindex('_')
 		if i
 			n[i] = '_jni_'
@@ -196,5 +262,9 @@ class JavaMethod
 			n = "Jni_#{n}"
 		end
 		"#{n.gsub('$', '_')}_#{@method_name}"
+	end
+
+	def to_s
+		"#{@method_name} #{@descriptor}"
 	end
 end

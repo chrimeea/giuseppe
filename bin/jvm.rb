@@ -43,10 +43,10 @@ class Frame
 		private
 
 	def save_into_locals params
-		fail if params.size > @method.args.size + 1
+		fail if params.size > @method.descriptor.args.size + 1
 		p = params.reverse
-		@locals.push(p.pop) if params.size == @method.args.size + 1
-		@method.args.each do |a|
+		@locals.push(p.pop) if params.size == @method.descriptor.args.size + 1
+		@method.descriptor.args.each do |a|
 			value = p.pop
 			@locals.push value
 			@locals.push value if %w[J D].include? a
@@ -66,7 +66,7 @@ class Scheduler
 	def run method, params
 		frame = @current_frame
 		@current_frame = Frame.new(@jvm.resolve_method!(method), params, frame)
-		$logger.debug('jvm.rb') { "#{jvmclass.class_type}, #{method.method_name}" }
+		$logger.debug('jvm.rb') { "#{jvmclass}, #{method.method_name}" }
 		if @current_frame.native?
 			send method.native_name(method.jvmclass), @jvm, @current_frame.locals
 		else
@@ -155,7 +155,7 @@ class Resolver
 			method.jvmclass = @resolved[method]
 		else
 			unless method.jvmclass.methods.key?(method)
-				fail "Unknown method #{method.method_name} #{method.method_type}" unless method.jvmclass.super_class
+				fail "Unknown method #{method}" unless method.jvmclass.super_class
 				method.jvmclass = @jvm.load_class(method.jvmclass.super_class)
 				resolve_method!(method)
 			end
@@ -175,11 +175,11 @@ class Resolver
 	end
 
 	def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
-		return true if jvmclass_a.class_type == jvmclass_b.class_type
-		if jvmclass_a.array? && jvmclass_b.array?
-			return false if jvmclass_a.dimensions != jvmclass_b.dimensions
-			jvmclass_a = @jvm.load_class class_type_a.element_type, descriptor: true
-			jvmclass_b = @jvm.load_class class_type_b.element_type, descriptor: true
+		return true if jvmclass_a.eql?(jvmclass_b)
+		if jvmclass_a.descriptor.array? && jvmclass_b.descriptor.array?
+			return false if jvmclass_a.descriptor.dimensions != jvmclass_b.descriptor.dimensions
+			jvmclass_a = @jvm.load_class class_type_a.descriptor.element_type
+			jvmclass_b = @jvm.load_class class_type_b.descriptor.element_type
 			type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		else
 			superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
@@ -218,9 +218,9 @@ class Allocator
 	end
 
 	def new_java_string value
-		jvmclass = load_class('java/lang/String')
+		jvmclass = @jvm.load_class('java/lang/String')
 		stringref = new_java_object jvmclass
-		arrayref = new_java_array load_class('[B'), [value.chars.size]
+		arrayref = new_java_array @jvm.load_class('[B'), [value.chars.size]
 		value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
 		@jvm.run(JavaMethod.new(jvmclass, '<init>', '([B)V'), [stringref, arrayref])
 		stringref
@@ -234,22 +234,21 @@ class Allocator
 		initialize_fields_for JavaInstance.new(jvmclass), jvmclass
 	end
 
-	def new_java_class name
+	def new_java_class_object name
 		@jvm.run(
-				JavaMethod.new(load_class('java/lang/Class'), 'forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
+				JavaMethod.new(@jvm.load_class('java/lang/Class'), 'forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
 				[new_java_string(name)]
 		)
 	end
 
-	def load_class class_type, descriptor: false
-		class_type = "L#{class_type};" unless descriptor || class_type.chr == '['
-		if @classes.key? class_type
-			@classes[class_type]
+	def load_class descriptor
+		if @classes.key? descriptor
+			@classes[descriptor]
 		else
-			jvmclass = JavaClass.new(JavaInstance.new, class_type)
-			@classes[class_type] = jvmclass
-			unless jvmclass.array? || jvmclass.primitive?
-				jvmclass.class_file = ClassLoader.new(jvmclass.class_name).load
+			jvmclass = JavaClass.new(JavaInstance.new, descriptor)
+			@classes[descriptor] = jvmclass
+			unless descriptor.array? || descriptor.primitive?
+				jvmclass.class_file = ClassFileLoader.new(descriptor.class_name).load
 				initialize_static_fields_for jvmclass
 				clinit = JavaMethod.new(jvmclass, '<clinit>', '()V')
 				@jvm.run(clinit, []) if jvmclass.methods.include?(clinit)
@@ -266,7 +265,7 @@ class Allocator
 				.select { |_, f| static == !f.access_flags.static?.nil? }
 				.each { |f, _| @jvm.set_field(reference, f, f.default_value) }
 		return reference if static || jvmclass.super_class.nil?
-		initialize_fields_for(reference, load_class(jvmclass.super_class))
+		initialize_fields_for(reference, @jvm.load_class(jvmclass.super_class))
 	end
 
 	def initialize_static_fields_for jvmclass
@@ -286,8 +285,10 @@ class JVM
 		@scheduler.current_frame
 	end
 
-	def load_class class_type, descriptor: false
-		@allocator.load_class class_type, descriptor: descriptor
+	def load_class class_type
+		class_type = "L#{class_type};" unless class_type.is_a?(TypeDescriptor) || class_type.chr == '['
+		class_type = TypeDescriptor.new(class_type) unless class_type.is_a?(TypeDescriptor)
+		@allocator.load_class(class_type)
 	end
 
 	def check_array_index reference, index
@@ -314,8 +315,8 @@ class JVM
 		@allocator.new_java_array jvmclass, sizes
 	end
 
-	def new_java_class name
-		@allocator.new_java_class name
+	def new_java_class_object name
+		@allocator.new_java_class_object name
 	end
 
 	def new_java_string value

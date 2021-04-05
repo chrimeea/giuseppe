@@ -18,7 +18,7 @@ def Java_lang_jni_Object_hashCode _, params
 end
 
 def Java_lang_jni_Object_getClass jvm, params
-	jvm.new_java_class params.first.jvmclass.class_name
+	jvm.new_java_class_object params.first.jvmclass.descriptor.class_name
 end
 
 def Java_lang_jni_String_valueOf jvm, params
@@ -34,7 +34,7 @@ def Java_lang_jni_Class_isInterface jvm, params
 	field = JavaField.new(reference.jvmclass, 'name', 'Ljava/lang/String;')
 	nameref = jvm.get_field(reference, field)
 	jvmclass = jvm.load_class(jvm.java_to_native_string(nameref))
-	!jvmclass.array? && jvmclass.class_file.access_flags.interface? ? 1 : 0
+	!jvmclass.descriptor.array? && jvmclass.class_file.access_flags.interface? ? 1 : 0
 end
 
 def Java_lang_jni_Throwable_fillInStackTrace jvm, params
@@ -45,7 +45,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	jvmclass = jvm.load_class elem_class_type
 	frame = jvm.current_frame
 	while frame
-		break if frame.method.jvmclass.class_type == reference.jvmclass.class_type
+		break if frame.method.jvmclass.eql?(reference.jvmclass)
 		frame = frame.parent_frame
 	end
 	frame = frame.parent_frame
@@ -56,7 +56,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 						'<init>',
 						'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'
 				),
-				[jvm.new_java_string(frame.method.jvmclass.class_name),
+				[jvm.new_java_string(frame.method.jvmclass.descriptor.class_name),
 					jvm.new_java_string(frame.method.method_name),
 					jvm.new_java_string(frame.method.jvmclass.source_file),
 					if frame.native? then 0 else frame.code_attr.line_number_for(frame.pc) end]

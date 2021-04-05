@@ -82,7 +82,7 @@ class ClassFile
 end
 
 # Parses a class file
-class ClassLoader
+class ClassFileLoader
 	def initialize class_type
 		@name = class_path class_type
 		@class_file = ClassFile.new

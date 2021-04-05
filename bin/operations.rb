@@ -47,7 +47,7 @@ class Operations
 				method = JavaMethod.new(reference.jvmclass, 'intern', '()Ljava/lang/String;')
 				@frame.stack.push @jvm.run(method, [reference])
 			else
-				@frame.stack.push @jvm.new_java_class(value)
+				@frame.stack.push @jvm.new_java_class_object(value)
 			end
 		else
 			fail 'Illegal attribute type'
@@ -214,7 +214,7 @@ class Operations
 		details = @frame.constant_pool.class_and_name_and_type(method_index)
 		method = JavaMethod.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 		params = []
-		args_count = method.args.size
+		args_count = method.descriptor.args.size
 		args_count.times { params.push @frame.stack.pop }
 		if opcode != 184
 			reference = @frame.stack.pop
@@ -230,7 +230,7 @@ class Operations
 			@frame.next_instruction
 		end
 		result = @jvm.run(method, params.reverse)
-		@frame.stack.push result if method.return_value?
+		@frame.stack.push result if method.descriptor.return_value?
 	end
 
 	def op_newobject
