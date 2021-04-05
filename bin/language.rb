@@ -6,6 +6,11 @@ class TypeDescriptor
 		@descriptor = descriptor
 	end
 
+	def self.from_internal class_type
+		class_type = "L#{class_type};" unless class_type.chr == '['
+		TypeDescriptor.new class_type
+	end
+
 	def primitive?
 		%w[B C D F I J S Z].include? @descriptor
 	end

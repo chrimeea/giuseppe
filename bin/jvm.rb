@@ -286,14 +286,18 @@ class JVM
 	end
 
 	def load_class class_type
-		class_type = "L#{class_type};" unless class_type.is_a?(TypeDescriptor) || class_type.chr == '['
-		class_type = TypeDescriptor.new(class_type) unless class_type.is_a?(TypeDescriptor)
-		@allocator.load_class(class_type)
+		if class_type.is_a?(TypeDescriptor)
+			@allocator.load_class class_type
+		else
+			@allocator.load_class(TypeDescriptor.from_internal(class_type))
+		end
 	end
 
 	def check_array_index reference, index
 		return if index >= 0 && index < reference.values.size
-		raise JVMError, new_java_object_with_constructor(JavaMethod.new(load_class('java/lang/ArrayIndexOutOfBoundsException')))
+		raise JVMError, new_java_object_with_constructor(
+				JavaMethod.new(load_class('java/lang/ArrayIndexOutOfBoundsException'))
+		)
 	end
 
 	def run method, params
