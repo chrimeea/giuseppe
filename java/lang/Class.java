@@ -9,11 +9,15 @@ public class Class<T> {
 	}
 
 	public String getName() {
-		return name;
+		if (name.charAt(0) == 'L') {
+			return name.substring(1, name.length() - 1);
+		} else {
+			return name;
+		}
 	}
 
 	public static Class<?> forName(String className) {
-		return new Class(className);
+		return new Class("L" + className.replace('.', '/') + ";");
 	}
 
 	public boolean desiredAssertionStatus() {
@@ -46,9 +50,9 @@ public class Class<T> {
 		} else if (this == Integer.TYPE) {
 			return "int";
 		} else if (isInterface()) {
-			return "interface " + name;
+			return "interface " + getName();
 		} else {
-			return "class " + name;
+			return "class " + getName();
 		}
 	}
 }

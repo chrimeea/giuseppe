@@ -234,13 +234,6 @@ class Allocator
 		initialize_fields_for JavaInstance.new(jvmclass), jvmclass
 	end
 
-	def new_java_class_object name
-		@jvm.run(
-				JavaMethod.new(@jvm.load_class('java/lang/Class'), 'forName', '(Ljava/lang/String;)Ljava/lang/Class;'),
-				[new_java_string(name)]
-		)
-	end
-
 	def load_class descriptor
 		if @classes.key? descriptor
 			@classes[descriptor]
@@ -320,7 +313,10 @@ class JVM
 	end
 
 	def new_java_class_object name
-		@allocator.new_java_class_object name
+		new_java_object_with_constructor(
+				JavaMethod.new(load_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
+				[new_java_string(TypeDescriptor.from_internal(name).to_s)]
+		)
 	end
 
 	def new_java_string value

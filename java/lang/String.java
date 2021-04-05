@@ -34,6 +34,23 @@ public class String {
 		return new String(bconcat);
 	}
 
+	public String replace(char oldChar, char newChar) {
+		byte[] b = getBytes();
+		for (int i = 0; i < b.length; i++) {
+			if (b[i] == oldChar) {
+				b[i] = (byte) newChar;
+			}
+		}
+		return new String(b);
+	}
+
+	public String substring(int beginIndex, int endIndex) {
+		int len = endIndex - beginIndex;
+		byte[] b = new byte[len];
+		System.arraycopy(bytes, beginIndex, b, 0, len);
+		return new String(b);
+	}
+
 	public static native String valueOf(byte b);
 	public static native String valueOf(short s);
 	public static native String valueOf(int i);

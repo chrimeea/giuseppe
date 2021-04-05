@@ -31,8 +31,8 @@ end
 
 def Java_lang_jni_Class_isInterface jvm, params
 	reference = params.first
-	field = JavaField.new(reference.jvmclass, 'name', 'Ljava/lang/String;')
-	nameref = jvm.get_field(reference, field)
+	method = JavaMethod.new(reference.jvmclass, 'getName', '()Ljava/lang/String;')
+	nameref = jvm.run(method, [reference])
 	jvmclass = jvm.load_class(jvm.java_to_native_string(nameref))
 	!jvmclass.descriptor.array? && jvmclass.class_file.access_flags.interface? ? 1 : 0
 end
