@@ -13,7 +13,7 @@ public class Throwable {
 	}
 
 	public void printStackTrace() {
-		System.err.println(toString());
+		System.err.print(toString());
 	}
 
 	public String toString() {
