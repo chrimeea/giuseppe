@@ -66,7 +66,7 @@ class Scheduler
 	def run method, params
 		frame = @current_frame
 		@current_frame = Frame.new(@jvm.resolve_method!(method), params, frame)
-		$logger.debug('jvm.rb') { "#{jvmclass}, #{method.method_name}" }
+		$logger.debug('jvm.rb') { method.to_s }
 		if @current_frame.native?
 			send native_name(method), @jvm, @current_frame.locals
 		else
@@ -91,7 +91,7 @@ class Scheduler
 	end
 
 	def loop_code
-		$logger.debug('jvm.rb') { @current_frame.code_attr.code.to_s }
+		$logger.debug('jvm.rb') { "Running bytecode #{@current_frame.code_attr.code.to_s}" }
 		dispatcher = OperationDispatcher.new @jvm
 		loop do
 			begin

@@ -93,7 +93,7 @@ class ClassFileLoader
 	end
 
 	def load
-		$logger.info "Loading #{@name}"
+		$logger.info('classfile.rb') { "Loading #{@name}" }
 		@class_file.magic = @parser.load_u4
 		@class_file.minor_version = @parser.load_u2
 		@class_file.major_version = @parser.load_u2

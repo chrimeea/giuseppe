@@ -258,6 +258,6 @@ class JavaMethod
 	end
 
 	def to_s
-		"#{@method_name} #{@descriptor}"
+		"#{@jvmclass} #{@method_name} #{@descriptor}"
 	end
 end
