@@ -68,7 +68,7 @@ class Scheduler
 		@current_frame = Frame.new(@jvm.resolve_method!(method), params, frame)
 		$logger.debug('jvm.rb') { "#{jvmclass}, #{method.method_name}" }
 		if @current_frame.native?
-			send method.native_name(method.jvmclass), @jvm, @current_frame.locals
+			send native_name(method), @jvm, @current_frame.locals
 		else
 			loop_code
 		end
@@ -77,6 +77,18 @@ class Scheduler
 	end
 
 		private
+
+	def native_name method
+		n = method.jvmclass.descriptor.class_name.gsub('/', '_')
+		i = n.rindex('_')
+		if i
+			n[i] = '_jni_'
+			n[0] = n[0].upcase
+		else
+			n = "Jni_#{n}"
+		end
+		"#{n.gsub('$', '_')}_#{method.method_name}"
+	end
 
 	def loop_code
 		$logger.debug('jvm.rb') { @current_frame.code_attr.code.to_s }

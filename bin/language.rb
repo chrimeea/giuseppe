@@ -257,18 +257,6 @@ class JavaMethod
 				@descriptor.eql?(other.descriptor)
 	end
 
-	def native_name jvmclass
-		n = jvmclass.descriptor.class_name.gsub('/', '_')
-		i = n.rindex('_')
-		if i
-			n[i] = '_jni_'
-			n[0] = n[0].upcase
-		else
-			n = "Jni_#{n}"
-		end
-		"#{n.gsub('$', '_')}_#{@method_name}"
-	end
-
 	def to_s
 		"#{@method_name} #{@descriptor}"
 	end
