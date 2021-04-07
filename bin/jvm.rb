@@ -7,7 +7,7 @@ require_relative 'native'
 
 # An execution frame
 class Frame
-	attr_reader :jvmclass, :stack, :locals, :code_attr, :method, :parent_frame
+	attr_reader :stack, :locals, :code_attr, :method, :parent_frame
 	attr_accessor :pc
 
 	def initialize method, params, parent_frame
