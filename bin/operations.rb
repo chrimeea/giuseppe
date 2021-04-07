@@ -230,7 +230,7 @@ class Operations
 			@frame.next_instruction
 		end
 		result = @jvm.run(method, params.reverse)
-		@frame.stack.push result if method.descriptor.return_value?
+		@frame.stack.push result unless method.descriptor.retval.void?
 	end
 
 	def op_newobject

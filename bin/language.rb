@@ -15,8 +15,16 @@ class TypeDescriptor
 		%w[B C D F I J S Z].include? @descriptor
 	end
 
+	def wide_primitive?
+		%w[J D].include? @descriptor
+	end
+
 	def element_type
 		TypeDescriptor.new @descriptor.delete('[')
+	end
+
+	def void?
+		@descriptor == 'V'
 	end
 
 	def array?
@@ -57,10 +65,6 @@ class MethodDescriptor
 		parse_type_descriptors
 	end
 
-	def return_value?
-		@retval != 'V'
-	end
-
 	def to_s
 		@descriptor
 	end
@@ -84,11 +88,11 @@ class MethodDescriptor
 		while i < descriptors.size
 			case descriptors[i]
 			when 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'
-				@args << a + descriptors[i]
+				@args << TypeDescriptor.new(a + descriptors[i])
 				a = ''
 			when 'L'
 				j = descriptors.index(';', i)
-				@args << a + descriptors[i..j]
+				@args << TypeDescriptor.new(a + descriptors[i..j])
 				i = j
 				a = ''
 			when '['
@@ -99,7 +103,7 @@ class MethodDescriptor
 			end
 			i += 1
 		end
-		@retval = pattern[2]
+		@retval = TypeDescriptor.new(pattern[2])
 	end
 
 		protected

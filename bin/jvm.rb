@@ -49,7 +49,7 @@ class Frame
 		@method.descriptor.args.each do |a|
 			value = p.pop
 			@locals.push value
-			@locals.push value if %w[J D].include? a
+			@locals.push value if a.wide_primitive?
 		end
 	end
 end
