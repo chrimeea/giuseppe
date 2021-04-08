@@ -12,7 +12,7 @@ javac -Xlint:-options -source 1.6 -target 1.6 java/lang/*.java
 javac -Xlint:-options -source 1.6 -target 1.6 java/io/*.java
 
 Usage example to compile and run a Test.java file:
-javac -source 1.6 -target 1.6 Test.java
+javac -Xlint:-options -source 1.6 -target 1.6 Test.java
 ./bin/java.rb Test
 
 Listing of jvm implementation classes:
