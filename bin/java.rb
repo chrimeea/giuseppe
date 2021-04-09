@@ -6,7 +6,7 @@ require 'logger'
 
 module Giuseppe
 	# A java program
-	class Program
+	class JavaProgram
 		def initialize jvm
 			@jvm = jvm
 		end
@@ -36,4 +36,4 @@ end
 $logger = Logger.new($stdout)
 $logger.level = Logger::ERROR
 $logger.info "Ruby #{RUBY_VERSION} - Running Giuseppe JVM 1.6_1.0 interpreter by Cristian Mocanu"
-Giuseppe::Program.new(Giuseppe::JVM.new).run_main ARGV.first, ARGV[1..-1]
+Giuseppe::JavaProgram.new(Giuseppe::JVM.new).run_main ARGV.first, ARGV[1..-1]
