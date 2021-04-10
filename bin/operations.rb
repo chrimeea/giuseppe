@@ -315,6 +315,20 @@ module Giuseppe
 					counts.reverse
 			)
 		end
+
+		def op_gotoif
+			@frame.pc += if yield
+							BinaryParser.to_signed(
+									BinaryParser.to_16bit_unsigned(
+											@frame.code_attr.code[@frame.pc],
+											@frame.code_attr.code[@frame.pc + 1]
+									),
+									2
+							) - 1
+						else
+							2
+						end
+		end
 	end
 
 	# Matches opcodes with their implementation in the Operations class
@@ -397,56 +411,42 @@ module Giuseppe
 			end
 		end
 
-		def goto_if
-			@frame.pc += if yield
-							BinaryParser.to_signed(
-									BinaryParser.to_16bit_unsigned(
-											@frame.code_attr.code[@frame.pc],
-											@frame.code_attr.code[@frame.pc + 1]
-									),
-									2
-							) - 1
-						else
-							2
-						end
-		end
-
 		def case_goto opcode
 			case opcode
 			when 153
-				goto_if { @frame.stack.pop.zero? }
+				@ops.op_gotoif { @frame.stack.pop.zero? }
 			when 154
-				goto_if { @frame.stack.pop.nonzero? }
+				@ops.op_gotoif { @frame.stack.pop.nonzero? }
 			when 155
-				goto_if { @frame.stack.pop.negative? }
+				@ops.op_gotoif { @frame.stack.pop.negative? }
 			when 156
-				goto_if { @frame.stack.pop >= 0 }
+				@ops.op_gotoif { @frame.stack.pop >= 0 }
 			when 157
-				goto_if { @frame.stack.pop.positive? }
+				@ops.op_gotoif { @frame.stack.pop.positive? }
 			when 158
-				goto_if { @frame.stack.pop <= 0 }
+				@ops.op_gotoif { @frame.stack.pop <= 0 }
 			when 159
-				goto_if { @frame.stack.pop == @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop == @frame.stack.pop }
 			when 160
-				goto_if { @frame.stack.pop != @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop != @frame.stack.pop }
 			when 161
-				goto_if { @frame.stack.pop > @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop > @frame.stack.pop }
 			when 162
-				goto_if { @frame.stack.pop <= @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop <= @frame.stack.pop }
 			when 163
-				goto_if { @frame.stack.pop < @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop < @frame.stack.pop }
 			when 164
-				goto_if { @frame.stack.pop >= @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop >= @frame.stack.pop }
 			when 165
-				goto_if { @frame.stack.pop == @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop == @frame.stack.pop }
 			when 166
-				goto_if { @frame.stack.pop != @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop != @frame.stack.pop }
 			when 167
-				goto_if { true }
+				@ops.op_gotoif { true }
 			when 198
-				goto_if { @frame.stack.pop.nil? }
+				@ops.op_gotoif { @frame.stack.pop.nil? }
 			when 199
-				goto_if { @frame.stack.pop }
+				@ops.op_gotoif { @frame.stack.pop }
 			end
 		end
 
