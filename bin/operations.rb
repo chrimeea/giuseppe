@@ -11,158 +11,27 @@ module Giuseppe
 		end
 	end
 
-	# Implements the bytecode instructions of a method
-	class Operations
+	# Implements fields related operations
+	class FieldOperations
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
 		end
 
-		def op_aconst value
-			@frame.stack.push value
-		end
-
-		def op_bipush
-			@frame.stack.push BinaryParser.to_signed(@frame.next_instruction, 1)
-		end
-
-		def op_sipush
-			@frame.stack.push BinaryParser.to_signed(
-					BinaryParser.to_16bit_unsigned(
-							@frame.next_instruction,
-							@frame.next_instruction),
-					2
-			)
-		end
-
-		def op_ldc
-			index = @frame.next_instruction
-			attrib = @frame.constant_pool[index]
-			case attrib
-			when ConstantPoolConstantValueInfo
-				@frame.stack.push attrib.value
-			when ConstantPoolConstantIndex1Info
-				value = @frame.constant_pool[attrib.index1].value
-				if attrib.string?
-					reference = @jvm.new_java_string(value)
-					method = JavaMethod.new(reference.jvmclass, 'intern', '()Ljava/lang/String;')
-					@frame.stack.push @jvm.run(method, [reference])
-				else
-					@frame.stack.push @jvm.new_java_class_object(value)
-				end
-			else
-				fail 'Illegal attribute type'
+		def interpret opcode
+			case opcode
+			when 178
+				op_getstatic
+			when 179
+				op_putstatic
+			when 180
+				op_getfield
+			when 181
+				op_putfield
 			end
 		end
 
-		def op_ldc2_wide
-			index = BinaryParser.to_16bit_unsigned(
-					@frame.next_instruction,
-					@frame.next_instruction
-			)
-			@frame.stack.push @frame.constant_pool[index].value
-		end
-
-		def op_iload index
-			@frame.stack.push @frame.locals[index]
-		end
-
-		def op_lstore index
-			@frame.locals[index] = @frame.locals[index + 1] = @frame.stack.pop
-		end
-
-		def op_istore index
-			@frame.locals[index] = @frame.stack.pop
-		end
-
-		def op_iaload
-			index = @frame.stack.pop
-			arrayref = @frame.stack.pop
-			@jvm.check_array_index arrayref, index
-			@frame.stack.push arrayref.values[index]
-		end
-
-		def op_iastore
-			value = @frame.stack.pop
-			index = @frame.stack.pop
-			arrayref = @frame.stack.pop
-			@jvm.check_array_index arrayref, index
-			arrayref.values[index] = value
-		end
-
-		def op_dup
-			@frame.stack.push @frame.stack.last
-		end
-
-		def op_iadd
-			@frame.stack.push(@frame.stack.pop + @frame.stack.pop)
-		end
-
-		def op_isub
-			v2 = @frame.stack.pop
-			v1 = @frame.stack.pop
-			@frame.stack.push v1 - v2
-		end
-
-		def op_imul
-			@frame.stack.push(@frame.stack.pop * @frame.stack.pop)
-		end
-
-		def op_idiv
-			v2 = @frame.stack.pop
-			v1 = @frame.stack.pop
-			@frame.stack.push v1 / v2
-		end
-
-		def op_ishl
-			v2 = @frame.stack.pop & 31
-			v1 = @frame.stack.pop
-			@frame.stack.push(v1 << v2)
-		end
-
-		def op_ishr
-			v2 = @frame.stack.pop & 31
-			v1 = @frame.stack.pop
-			@frame.stack.push(v1 >> v2)
-		end
-
-		def op_iand
-			@frame.stack.push(@frame.stack.pop & @frame.stack.pop)
-		end
-
-		def op_ior
-			@frame.stack.push(@frame.stack.pop | @frame.stack.pop)
-		end
-
-		def op_ixor
-			@frame.stack.push(@frame.stack.pop ^ @frame.stack.pop)
-		end
-
-		def op_iinc
-			index = @frame.next_instruction
-			value = @frame.next_instruction
-			@frame.locals[index] += BinaryParser.to_signed(value, 1)
-		end
-
-		def op_i2b
-			@frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(@frame.stack.pop, 1), 1)
-		end
-
-		def op_i2c
-			@frame.stack.push BinaryParser.trunc_to(@frame.stack.pop, 1)
-		end
-
-		def op_i2s
-			@frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(@frame.stack.pop, 2), 2)
-		end
-
-		def op_i2f
-			@frame.stack.push @frame.stack.pop.to_f
-		end
-
-		def op_f2i
-			@frame.stack.push @frame.stack.pop.to_i
-		end
+			private
 
 		def op_getstatic
 			field_index = BinaryParser.to_16bit_unsigned(
@@ -206,6 +75,517 @@ module Giuseppe
 			field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 			@jvm.set_field(reference, field, value)
 		end
+	end
+
+	# Implements array related operations
+	class ArrayOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 188
+				op_newarray
+			when 189
+				op_anewarray
+			when 190
+				op_arraylength
+			when 197
+				op_multianewarray
+			end
+		end
+
+			private
+
+		def op_newarray
+			count = @frame.stack.pop
+			array_code = @frame.next_instruction
+			array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
+			@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type[array_code]), [count])
+		end
+
+		def op_anewarray
+			class_index = BinaryParser.to_16bit_unsigned(
+					@frame.next_instruction,
+					@frame.next_instruction
+			)
+			array_type = "[#{@frame.constant_pool.get_attrib_value(class_index)}"
+			count = @frame.stack.pop
+			@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type), [count])
+		end
+
+		def op_arraylength
+			array_reference = @frame.stack.pop
+			@frame.stack.push array_reference.values.size
+		end
+
+		def op_multianewarray
+			class_index = BinaryParser.to_16bit_unsigned(
+					@frame.next_instruction,
+					@frame.next_instruction
+			)
+			dimensions = @frame.next_instruction
+			counts = []
+			dimensions.times { counts << @frame.stack.pop }
+			@frame.stack.push @jvm.new_java_array(
+					@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)),
+					counts.reverse
+			)
+		end
+	end
+
+	# Implements goto operations
+	class GotoOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 153
+				op_gotoif { @frame.stack.pop.zero? }
+			when 154
+				op_gotoif { @frame.stack.pop.nonzero? }
+			when 155
+				op_gotoif { @frame.stack.pop.negative? }
+			when 156
+				op_gotoif { @frame.stack.pop >= 0 }
+			when 157
+				op_gotoif { @frame.stack.pop.positive? }
+			when 158
+				op_gotoif { @frame.stack.pop <= 0 }
+			when 159
+				op_gotoif { @frame.stack.pop == @frame.stack.pop }
+			when 160
+				op_gotoif { @frame.stack.pop != @frame.stack.pop }
+			when 161
+				op_gotoif { @frame.stack.pop > @frame.stack.pop }
+			when 162
+				op_gotoif { @frame.stack.pop <= @frame.stack.pop }
+			when 163
+				op_gotoif { @frame.stack.pop < @frame.stack.pop }
+			when 164
+				op_gotoif { @frame.stack.pop >= @frame.stack.pop }
+			when 165
+				op_gotoif { @frame.stack.pop == @frame.stack.pop }
+			when 166
+				op_gotoif { @frame.stack.pop != @frame.stack.pop }
+			when 167
+				op_gotoif { true }
+			when 198
+				op_gotoif { @frame.stack.pop.nil? }
+			when 199
+				op_gotoif { @frame.stack.pop }
+			end
+		end
+
+		def op_gotoif
+			@frame.pc += if yield
+							BinaryParser.to_signed(
+									BinaryParser.to_16bit_unsigned(
+											@frame.code_attr.code[@frame.pc],
+											@frame.code_attr.code[@frame.pc + 1]
+									),
+									2
+							) - 1
+						else
+							2
+						end
+		end
+	end
+
+	# Implements type conversion operations
+	class ConversionOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 133, 141
+			when 134, 135, 137, 138
+				op_i2f
+			when 136, 139, 140
+				op_f2i
+			when 145
+				op_i2b
+			when 146
+				op_i2c
+			when 147
+				op_i2s
+			end
+		end
+
+			private
+
+		def op_i2b
+			@frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(@frame.stack.pop, 1), 1)
+		end
+
+		def op_i2c
+			@frame.stack.push BinaryParser.trunc_to(@frame.stack.pop, 1)
+		end
+
+		def op_i2s
+			@frame.stack.push BinaryParser.to_signed(BinaryParser.trunc_to(@frame.stack.pop, 2), 2)
+		end
+
+		def op_i2f
+			@frame.stack.push @frame.stack.pop.to_f
+		end
+
+		def op_f2i
+			@frame.stack.push @frame.stack.pop.to_i
+		end
+	end
+
+	# Implements byte boolean operations
+	class BooleanOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 126
+				op_iand
+			when 128
+				op_ior
+			when 130
+				op_ixor
+			end
+		end
+
+			private
+
+		def op_iand
+			@frame.stack.push(@frame.stack.pop & @frame.stack.pop)
+		end
+
+		def op_ior
+			@frame.stack.push(@frame.stack.pop | @frame.stack.pop)
+		end
+
+		def op_ixor
+			@frame.stack.push(@frame.stack.pop ^ @frame.stack.pop)
+		end
+	end
+
+	# Implements byte shifting operations
+	class ShiftOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 120
+				op_ishl
+			when 122
+				op_ishr
+			end
+		end
+
+			private
+
+		def op_ishl
+			v2 = @frame.stack.pop & 31
+			v1 = @frame.stack.pop
+			@frame.stack.push(v1 << v2)
+		end
+
+		def op_ishr
+			v2 = @frame.stack.pop & 31
+			v1 = @frame.stack.pop
+			@frame.stack.push(v1 >> v2)
+		end
+	end
+
+	# Implements math operations
+	class MathOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 96..99
+				op_iadd
+			when 100..103
+				op_isub
+			when 104..107
+				op_imul
+			when 108..111
+				op_idiv
+			end
+		end
+
+			private
+
+		def op_iadd
+			@frame.stack.push(@frame.stack.pop + @frame.stack.pop)
+		end
+
+		def op_isub
+			v2 = @frame.stack.pop
+			v1 = @frame.stack.pop
+			@frame.stack.push v1 - v2
+		end
+
+		def op_imul
+			@frame.stack.push(@frame.stack.pop * @frame.stack.pop)
+		end
+
+		def op_idiv
+			v2 = @frame.stack.pop
+			v1 = @frame.stack.pop
+			@frame.stack.push v1 / v2
+		end
+	end
+
+	# Implements locals operations
+	class StoreOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 54, 56, 58
+				op_istore @frame.next_instruction
+			when 55, 57
+				op_lstore @frame.next_instruction
+			when 59, 67, 75
+				op_istore 0
+			when 60, 68, 76
+				op_istore 1
+			when 61, 69, 77
+				op_istore 2
+			when 62, 70, 78
+				op_istore 3
+			when 63, 71
+				op_lstore 0
+			when 64, 72
+				op_lstore 1
+			when 65, 73
+				op_lstore 2
+			when 66, 74
+				op_lstore 3
+			when 79, 83, 84
+				op_iastore
+			when 132
+				op_iinc
+			end
+		end
+
+			private
+
+		def op_iinc
+			index = @frame.next_instruction
+			value = @frame.next_instruction
+			@frame.locals[index] += BinaryParser.to_signed(value, 1)
+		end
+
+		def op_lstore index
+			@frame.locals[index] = @frame.locals[index + 1] = @frame.stack.pop
+		end
+
+		def op_istore index
+			@frame.locals[index] = @frame.stack.pop
+		end
+
+		def op_iastore
+			value = @frame.stack.pop
+			index = @frame.stack.pop
+			arrayref = @frame.stack.pop
+			@jvm.check_array_index arrayref, index
+			arrayref.values[index] = value
+		end
+	end
+
+	# Implements load into stack operations
+	class LoadOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 16
+				op_bipush
+			when 17
+				op_sipush
+			when 18
+				op_ldc
+			when 20
+				op_ldc2_wide
+			when 21..25
+				op_iload @frame.next_instruction
+			when 26, 30, 34, 38, 42
+				op_iload 0
+			when 27, 31, 35, 39, 43
+				op_iload 1
+			when 28, 32, 36, 40, 44
+				op_iload 2
+			when 29, 33, 37, 41, 45
+				op_iload 3
+			when 46, 50, 51
+				op_iaload
+			end
+		end
+
+			private
+
+		def op_bipush
+			@frame.stack.push BinaryParser.to_signed(@frame.next_instruction, 1)
+		end
+
+		def op_sipush
+			@frame.stack.push BinaryParser.to_signed(
+					BinaryParser.to_16bit_unsigned(
+							@frame.next_instruction,
+							@frame.next_instruction
+					),
+					2
+			)
+		end
+
+		def op_ldc
+			index = @frame.next_instruction
+			attrib = @frame.constant_pool[index]
+			case attrib
+			when ConstantPoolConstantValueInfo
+				@frame.stack.push attrib.value
+			when ConstantPoolConstantIndex1Info
+				value = @frame.constant_pool[attrib.index1].value
+				if attrib.string?
+					reference = @jvm.new_java_string(value)
+					method = JavaMethod.new(reference.jvmclass, 'intern', '()Ljava/lang/String;')
+					@frame.stack.push @jvm.run(method, [reference])
+				else
+					@frame.stack.push @jvm.new_java_class_object(value)
+				end
+			else
+				fail 'Illegal attribute type'
+			end
+		end
+
+		def op_ldc2_wide
+			index = BinaryParser.to_16bit_unsigned(
+					@frame.next_instruction,
+					@frame.next_instruction
+			)
+			@frame.stack.push @frame.constant_pool[index].value
+		end
+
+		def op_iload index
+			@frame.stack.push @frame.locals[index]
+		end
+
+		def op_iaload
+			index = @frame.stack.pop
+			arrayref = @frame.stack.pop
+			@jvm.check_array_index arrayref, index
+			@frame.stack.push arrayref.values[index]
+		end
+	end
+
+	# Implements const operations
+	class ConstOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 1
+				op_aconst nil
+			when 2
+				op_aconst(-1)
+			when 3, 9
+				op_aconst 0
+			when 4, 10
+				op_aconst 1
+			when 5
+				op_aconst 2
+			when 6
+				op_aconst 3
+			when 7
+				op_aconst 4
+			when 8
+				op_aconst 5
+			when 11, 14
+				op_aconst 0.0
+			when 12, 15
+				op_aconst 1.0
+			when 13
+				op_aconst 2.0
+			end
+		end
+
+			private
+
+		def op_aconst value
+			@frame.stack.push value
+		end
+	end
+
+	# Implements stack operations
+	class StackOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 87
+				@frame.stack.pop
+			when 89
+				op_dup
+			end
+		end
+
+			private
+
+		def op_dup
+			@frame.stack.push @frame.stack.last
+		end
+	end
+
+	# Implements object related operations
+	class ObjectOperations
+		def initialize jvm
+			@jvm = jvm
+			@frame = jvm.current_frame
+		end
+
+		def interpret opcode
+			case opcode
+			when 182..185
+				op_invoke opcode
+			when 187
+				op_newobject
+			when 191
+				op_athrow
+			when 192
+				op_checkcast
+			when 193
+				op_instanceof
+			end
+		end
+
+			private
 
 		def op_invoke opcode
 			method_index = BinaryParser.to_16bit_unsigned(
@@ -240,28 +620,6 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			@frame.stack.push @jvm.new_java_object(@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)))
-		end
-
-		def op_newarray
-			count = @frame.stack.pop
-			array_code = @frame.next_instruction
-			array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
-			@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type[array_code]), [count])
-		end
-
-		def op_anewarray
-			class_index = BinaryParser.to_16bit_unsigned(
-					@frame.next_instruction,
-					@frame.next_instruction
-			)
-			array_type = "[#{@frame.constant_pool.get_attrib_value(class_index)}"
-			count = @frame.stack.pop
-			@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type), [count])
-		end
-
-		def op_arraylength
-			array_reference = @frame.stack.pop
-			@frame.stack.push array_reference.values.size
 		end
 
 		def op_athrow
@@ -301,280 +659,54 @@ module Giuseppe
 				@frame.stack.push 0
 			end
 		end
-
-		def op_multianewarray
-			class_index = BinaryParser.to_16bit_unsigned(
-					@frame.next_instruction,
-					@frame.next_instruction
-			)
-			dimensions = @frame.next_instruction
-			counts = []
-			dimensions.times { counts << @frame.stack.pop }
-			@frame.stack.push @jvm.new_java_array(
-					@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)),
-					counts.reverse
-			)
-		end
-
-		def op_gotoif
-			@frame.pc += if yield
-							BinaryParser.to_signed(
-									BinaryParser.to_16bit_unsigned(
-											@frame.code_attr.code[@frame.pc],
-											@frame.code_attr.code[@frame.pc + 1]
-									),
-									2
-							) - 1
-						else
-							2
-						end
-		end
 	end
 
-	# Matches opcodes with their implementation in the Operations class
+	# Matches opcodes with their implementation
 	class OperationDispatcher
 		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-			@ops = Operations.new jvm
+			@const_ops = ConstOperations.new(jvm)
+			@load_ops = LoadOperations.new(jvm)
+			@store_ops = StoreOperations.new(jvm)
+			@stack_ops = StackOperations.new(jvm)
+			@math_ops = MathOperations.new(jvm)
+			@shift_ops = ShiftOperations.new(jvm)
+			@bool_ops = BooleanOperations.new(jvm)
+			@conversion_ops = ConversionOperations.new(jvm)
+			@goto_ops = GotoOperations.new(jvm)
+			@field_ops = FieldOperations.new(jvm)
+			@obj_ops = ObjectOperations.new(jvm)
+			@array_ops = ArrayOperations.new(jvm)
 		end
 
 		def interpret opcode
 			case opcode
 			when 0
 			when 1..15
-				case_aconst opcode
+				@const_ops.interpret opcode
 			when 16..18, 20..46, 50, 51
-				case_iload opcode
-			when 54..79, 83, 84
-				case_istore opcode
-			when 87
-				@frame.stack.pop
-			when 89
-				@ops.op_dup
+				@load_ops.interpret opcode
+			when 54..79, 83, 84, 132
+				@store_ops.interpret opcode
+			when 87, 89
+				@stack_ops.interpret opcode
 			when 96..111
-				case_math opcode
+				@math_ops.interpret opcode
 			when 120, 122
-				case_ish opcode
+				@shift_ops.interpret opcode
 			when 126, 128, 130
-				case_boolean opcode
-			when 132
-				@ops.op_iinc
+				@bool_ops.interpret opcode
 			when 133..141, 145, 146, 147
-				case_conversion opcode
+				@conversion_ops.interpret opcode
 			when 153..167, 198, 199
-				case_goto opcode
+				@goto_ops.interpret opcode
 			when 178..181
-				case_field opcode
-			when 182..185
-				@ops.op_invoke opcode
-			when 187
-				@ops.op_newobject
+				@field_ops.interpret opcode
+			when 182..185, 187, 191..193
+				@obj_ops.interpret opcode
 			when 188..190, 197
-				case_array opcode
-			when 191
-				@ops.op_athrow
-			when 192
-				@ops.op_checkcast
-			when 193
-				@ops.op_instanceof
+				@array_ops.interpret opcode
 			else
 				fail "Unsupported opcode #{opcode}"
-			end
-		end
-
-			private
-
-		def case_array opcode
-			case opcode
-			when 188
-				@ops.op_newarray
-			when 189
-				@ops.op_anewarray
-			when 190
-				@ops.op_arraylength
-			when 197
-				@ops.op_multianewarray
-			end
-		end
-
-		def case_field opcode
-			case opcode
-			when 178
-				@ops.op_getstatic
-			when 179
-				@ops.op_putstatic
-			when 180
-				@ops.op_getfield
-			when 181
-				@ops.op_putfield
-			end
-		end
-
-		def case_goto opcode
-			case opcode
-			when 153
-				@ops.op_gotoif { @frame.stack.pop.zero? }
-			when 154
-				@ops.op_gotoif { @frame.stack.pop.nonzero? }
-			when 155
-				@ops.op_gotoif { @frame.stack.pop.negative? }
-			when 156
-				@ops.op_gotoif { @frame.stack.pop >= 0 }
-			when 157
-				@ops.op_gotoif { @frame.stack.pop.positive? }
-			when 158
-				@ops.op_gotoif { @frame.stack.pop <= 0 }
-			when 159
-				@ops.op_gotoif { @frame.stack.pop == @frame.stack.pop }
-			when 160
-				@ops.op_gotoif { @frame.stack.pop != @frame.stack.pop }
-			when 161
-				@ops.op_gotoif { @frame.stack.pop > @frame.stack.pop }
-			when 162
-				@ops.op_gotoif { @frame.stack.pop <= @frame.stack.pop }
-			when 163
-				@ops.op_gotoif { @frame.stack.pop < @frame.stack.pop }
-			when 164
-				@ops.op_gotoif { @frame.stack.pop >= @frame.stack.pop }
-			when 165
-				@ops.op_gotoif { @frame.stack.pop == @frame.stack.pop }
-			when 166
-				@ops.op_gotoif { @frame.stack.pop != @frame.stack.pop }
-			when 167
-				@ops.op_gotoif { true }
-			when 198
-				@ops.op_gotoif { @frame.stack.pop.nil? }
-			when 199
-				@ops.op_gotoif { @frame.stack.pop }
-			end
-		end
-
-		def case_conversion opcode
-			case opcode
-			when 133, 141
-			when 134, 135, 137, 138
-				@ops.op_i2f
-			when 136, 139, 140
-				@ops.op_f2i
-			when 145
-				@ops.op_i2b
-			when 146
-				@ops.op_i2c
-			when 147
-				@ops.op_i2s
-			end
-		end
-
-		def case_boolean opcode
-			case opcode
-			when 126
-				@ops.op_iand
-			when 128
-				@ops.op_ior
-			when 130
-				@ops.op_ixor
-			end
-		end
-
-		def case_ish opcode
-			case opcode
-			when 120
-				@ops.op_ishl
-			when 122
-				@ops.op_ishr
-			end
-		end
-
-		def case_math opcode
-			case opcode
-			when 96..99
-				@ops.op_iadd
-			when 100..103
-				@ops.op_isub
-			when 104..107
-				@ops.op_imul
-			when 108..111
-				@ops.op_idiv
-			end
-		end
-
-		def case_istore opcode
-			case opcode
-			when 54, 56, 58
-				@ops.op_istore @frame.next_instruction
-			when 55, 57
-				@ops.op_lstore @frame.next_instruction
-			when 59, 67, 75
-				@ops.op_istore 0
-			when 60, 68, 76
-				@ops.op_istore 1
-			when 61, 69, 77
-				@ops.op_istore 2
-			when 62, 70, 78
-				@ops.op_istore 3
-			when 63, 71
-				@ops.op_lstore 0
-			when 64, 72
-				@ops.op_lstore 1
-			when 65, 73
-				@ops.op_lstore 2
-			when 66, 74
-				@ops.op_lstore 3
-			when 79, 83, 84
-				@ops.op_iastore
-			end
-		end
-
-		def case_iload opcode
-			case opcode
-			when 16
-				@ops.op_bipush
-			when 17
-				@ops.op_sipush
-			when 18
-				@ops.op_ldc
-			when 20
-				@ops.op_ldc2_wide
-			when 21..25
-				@ops.op_iload @frame.next_instruction
-			when 26, 30, 34, 38, 42
-				@ops.op_iload 0
-			when 27, 31, 35, 39, 43
-				@ops.op_iload 1
-			when 28, 32, 36, 40, 44
-				@ops.op_iload 2
-			when 29, 33, 37, 41, 45
-				@ops.op_iload 3
-			when 46, 50, 51
-				@ops.op_iaload
-			end
-		end
-
-		def case_aconst opcode
-			case opcode
-			when 1
-				@ops.op_aconst nil
-			when 2
-				@ops.op_aconst(-1)
-			when 3, 9
-				@ops.op_aconst 0
-			when 4, 10
-				@ops.op_aconst 1
-			when 5
-				@ops.op_aconst 2
-			when 6
-				@ops.op_aconst 3
-			when 7
-				@ops.op_aconst 4
-			when 8
-				@ops.op_aconst 5
-			when 11, 14
-				@ops.op_aconst 0.0
-			when 12, 15
-				@ops.op_aconst 1.0
-			when 13
-				@ops.op_aconst 2.0
 			end
 		end
 	end
