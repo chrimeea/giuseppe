@@ -89,7 +89,7 @@ module Giuseppe
 		end
 
 		def load content = IO.binread(class_path(@class_type))
-			$logger.info('classfile.rb') { "Loading #{@name}" }
+			$logger.info('classfile.rb') { "Loading #{@class_type}" }
 			class_file = ClassFile.new
 			parser = BinaryParser.new content
 			class_file.magic = parser.load_u4
