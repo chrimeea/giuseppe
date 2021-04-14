@@ -78,9 +78,9 @@ module Giuseppe
 
 	# Parses attributes from a class file
 	class AttributeLoader
-		def initialize parser, class_file
+		def initialize parser, constant_pool
 			@parser = parser
-			@class_file = class_file
+			@constant_pool = constant_pool
 		end
 
 		def load
@@ -178,7 +178,7 @@ module Giuseppe
 		def load_one_attribute
 			attribute_name_index = @parser.load_u2
 			attribute_length = @parser.load_u4
-			attribute_type = @class_file.constant_pool[attribute_name_index].value
+			attribute_type = @constant_pool[attribute_name_index].value
 			case attribute_type
 			when 'ConstantValue'
 				a = read_constantvalue_attribute

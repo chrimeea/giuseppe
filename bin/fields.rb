@@ -8,9 +8,9 @@ module Giuseppe
 
 	# Parses java fields and methods from a class file
 	class FieldLoader
-		def initialize parser, attribute_loader
+		def initialize parser, constant_pool
 			@parser = parser
-			@attribute_loader = attribute_loader
+			@constant_pool = constant_pool
 		end
 
 		def load
@@ -20,7 +20,7 @@ module Giuseppe
 				c.access_flags = AccessFlags.new @parser.load_u2
 				c.name_index = @parser.load_u2
 				c.descriptor_index = @parser.load_u2
-				c.attributes = @attribute_loader.load
+				c.attributes = AttributeLoader.new(@parser, @constant_pool).load
 				f << c
 			end
 			f

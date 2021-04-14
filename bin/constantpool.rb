@@ -92,15 +92,15 @@ module Giuseppe
 	class ConstantPoolLoader
 		def initialize parser
 			@parser = parser
-			@pool = ConstantPool.new
 		end
 
 		def load
+			pool = ConstantPool.new
 			constant_pool_count = @parser.load_u2 - 1
 			tag = nil
 			constant_pool_count.times do
 				if [5, 6].include? tag
-					@pool << nil
+					pool << nil
 					tag = nil
 				else
 					tag = @parser.load_u1
@@ -116,10 +116,10 @@ module Giuseppe
 					when 9, 10, 11, 12
 						v = read_constant_name_and_type tag
 					end
-					@pool << v
+					pool << v
 				end
 			end
-			@pool
+			pool
 		end
 
 			private
