@@ -43,9 +43,8 @@ Listing of Giuseppe JVM implementation classes:
 |classfile                           |
 |classfileloader                     |
 |classfield                          |
-|fieldloader                         |
 |classattribute + ...                |
-|attributeloader                     |
+|constantpool                        |
 |constantpoolconstant + ...          |
 ├------------------------------------┤
 |binaryparser                        |

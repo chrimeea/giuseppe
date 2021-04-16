@@ -14,9 +14,7 @@ module Giuseppe
 		end
 
 		def self.load_fields parser, constant_pool
-			f = []
-			parser.load_u2.times { f << ClassField.new.load(parser, constant_pool) }
-			f
+			(1..(parser.load_u2)).map { ClassField.new.load(parser, constant_pool) }
 		end
 	end
 end

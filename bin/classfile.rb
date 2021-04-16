@@ -103,6 +103,7 @@ module Giuseppe
 		end
 	end
 
+	# Loads a class file from disk
 	class ClassFileLoader
 
 		def initialize class_type
