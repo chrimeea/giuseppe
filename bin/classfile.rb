@@ -73,18 +73,15 @@ module Giuseppe
 						:fields, :methods, :magic, :minor_version, :major_version,
 						:this_class, :super_class, :access_flags
 
-		def initialize class_type
+		def initialize
 			@constant_pool = ConstantPool.new
 			@interfaces = []
 			@attributes = []
 			@fields = []
 			@methods = []
-			@class_type = class_type
 		end
 
-		def load content = IO.binread(class_path(@class_type))
-			$logger.info('classfile.rb') { "Loading #{@class_type}" }
-			parser = BinaryParser.new content
+		def load parser
 			@magic = parser.load_u4
 			@minor_version = parser.load_u2
 			@major_version = parser.load_u2
@@ -104,6 +101,20 @@ module Giuseppe
 		def load_interfaces parser
 			parser.load_u2_array(parser.load_u2)
 		end
+	end
+
+	class ClassFileLoader
+
+		def initialize class_type
+			@class_type = class_type
+		end
+
+		def load content = IO.binread(class_path(@class_type))
+			$logger.info('classfile.rb') { "Loading #{@class_type}" }
+			ClassFile.new.load(BinaryParser.new(content))
+		end
+
+			private
 
 		def class_path class_type
 			"#{class_type}.class"
