@@ -20,8 +20,6 @@ Metrics/MethodLength:
   Enabled: false
 Metrics/AbcSize:
   Enabled: false
-Metrics/ClassLength:
-  Enabled: false
 Metrics/CyclomaticComplexity:
   Enabled: false
 Lint/BinaryOperatorWithIdenticalOperands:

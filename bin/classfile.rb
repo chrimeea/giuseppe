@@ -73,38 +73,30 @@ module Giuseppe
 						:fields, :methods, :magic, :minor_version, :major_version,
 						:this_class, :super_class, :access_flags
 
-		def initialize
+		def initialize class_type
 			@constant_pool = ConstantPool.new
 			@interfaces = []
 			@attributes = []
 			@fields = []
 			@methods = []
-		end
-	end
-
-	# Parses a class file
-	class ClassFileLoader
-		def initialize class_type
 			@class_type = class_type
 		end
 
 		def load content = IO.binread(class_path(@class_type))
 			$logger.info('classfile.rb') { "Loading #{@class_type}" }
-			class_file = ClassFile.new
 			parser = BinaryParser.new content
-			class_file.magic = parser.load_u4
-			class_file.minor_version = parser.load_u2
-			class_file.major_version = parser.load_u2
-			class_file.constant_pool = ConstantPoolLoader.new(parser).load
-			class_file.access_flags = AccessFlags.new parser.load_u2
-			class_file.this_class = parser.load_u2
-			class_file.super_class = parser.load_u2
-			class_file.interfaces = load_interfaces parser
-			field_loader = FieldLoader.new(parser, class_file.constant_pool)
-			class_file.fields = field_loader.load
-			class_file.methods = field_loader.load
-			class_file.attributes = AttributeLoader.new(parser, class_file.constant_pool).load
-			class_file
+			@magic = parser.load_u4
+			@minor_version = parser.load_u2
+			@major_version = parser.load_u2
+			@constant_pool.load(parser)
+			@access_flags = AccessFlags.new parser.load_u2
+			@this_class = parser.load_u2
+			@super_class = parser.load_u2
+			@interfaces = load_interfaces parser
+			@fields = ClassField.load_fields(parser, @constant_pool)
+			@methods = ClassField.load_fields(parser, @constant_pool)
+			@attributes = ClassAttribute.load_attribs(parser, @constant_pool)
+			self
 		end
 
 			private

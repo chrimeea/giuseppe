@@ -4,11 +4,61 @@ module Giuseppe
 	# Base class for all attributes
 	class ClassAttribute
 		attr_accessor :attribute_name_index, :info
+
+		def self.load parser, constant_pool
+			attribute_name_index = parser.load_u2
+			attribute_length = parser.load_u4
+			attribute_type = constant_pool[attribute_name_index].value
+			case attribute_type
+			when 'ConstantValue'
+				a = ClassAttributeConstantValue.new.load(parser)
+			when 'Code'
+				a = ClassAttributeCode.new.load(parser, constant_pool)
+			when 'Exceptions'
+				a = ClassAttributeExceptions.new.load(parser)
+			when 'InnerClasses'
+				a = ClassAttributeInnerClasses.new.load(parser)
+			when 'Synthetic'
+				a = ClassAttributeSyntetic.new
+			when 'SourceFile'
+				a = ClassAttributeSourceFile.new.load(parser)
+			when 'LineNumberTable'
+				a = ClassAttributeLineNumber.new.load(parser)
+			when 'LocalVariableTable'
+				a = ClassAttributeLocalVariableTable.new.load(parser)
+			when 'Deprecated'
+				a = ClassAttributeDeprecated.new
+			else
+				$logger.warn('classloader.rb') { "unknown attribute #{attribute_type}" }
+				a = ClassAttribute.new
+				a.info = parser.load_u1_array(attribute_length)
+			end
+			a.attribute_name_index = attribute_name_index
+			a
+		end
+
+		def self.load_attribs parser, constant_pool
+			attribs = {}
+			parser.load_u2.times do
+				a = ClassAttribute.load(parser, constant_pool)
+				if attribs.key? a.class
+					attribs[a.class] << a
+				else
+					attribs[a.class] = [a]
+				end
+			end
+			attribs
+		end
 	end
 
 	# Constant value attribute
 	class ClassAttributeConstantValue < ClassAttribute
 		attr_accessor :constantvalue_index
+
+		def load parser
+			@constantvalue_index = parser.load_u2
+			self
+		end
 	end
 
 	# Code attribute
@@ -29,11 +79,33 @@ module Giuseppe
 		def exception_handlers_for pc
 			@exception_table.select { |e| pc >= e.start_pc && pc < e.end_pc }
 		end
+
+		def load parser, constant_pool
+			@max_stack = parser.load_u2
+			@max_locals = parser.load_u2
+			@code = parser.load_u1_array(parser.load_u4)
+			@exception_table = []
+			parser.load_u2.times do
+				t = ClassAttributeCode::Table.new
+				t.start_pc = parser.load_u2
+				t.end_pc = parser.load_u2
+				t.handler_pc = parser.load_u2
+				t.catch_type = parser.load_u2
+				@exception_table << t
+			end
+			@attributes = ClassAttribute.load_attribs(parser, constant_pool)
+			self
+		end
 	end
 
 	# Exceptions attribute
 	class ClassAttributeExceptions < ClassAttribute
 		attr_accessor :exception_index_table
+
+		def load parser
+			@exception_index_table = parser.load_u2_array(parser.load_u2)
+			self
+		end
 	end
 
 	# Inner classes attribute
@@ -42,6 +114,19 @@ module Giuseppe
 
 		class Table
 			attr_accessor :inner_class_info_index, :outer_class_info_index, :inner_name_index, :inner_class_access_flags
+		end
+
+		def load parser
+			@classes = []
+			parser.load_u2.times do
+				t = ClassAttributeInnerClasses::Table.new
+				t.inner_class_info_index = parser.load_u2
+				t.outer_class_info_index = parser.load_u2
+				t.inner_name_index = parser.load_u2
+				t.inner_class_access_flags = AccessFlags.new parser.load_u2
+				@classes << t
+			end
+			self
 		end
 	end
 
@@ -52,6 +137,11 @@ module Giuseppe
 	# Source file attribute
 	class ClassAttributeSourceFile < ClassAttribute
 		attr_accessor :sourcefile_index
+
+		def load parser
+			@sourcefile_index = parser.load_u2
+			self
+		end
 	end
 
 	# Line number attribute
@@ -60,6 +150,17 @@ module Giuseppe
 
 		class Table
 			attr_accessor :start_pc, :line_number
+		end
+
+		def load parser
+			@line_number_table = []
+			parser.load_u2.times do
+				t = ClassAttributeLineNumber::Table.new
+				t.start_pc = parser.load_u2
+				t.line_number = parser.load_u2
+				@line_number_table << t
+			end
+			self
 		end
 	end
 
@@ -70,141 +171,23 @@ module Giuseppe
 		class Table
 			attr_accessor :start_pc, :length, :name_index, :descriptor_index, :index
 		end
+
+		def load parser
+			@local_variable_table = []
+			parser.load_u2.times do
+				t = ClassAttributeLocalVariableTable::Table
+				t.start_pc = parser.load_u2
+				t.length = parser.load_u2
+				t.name_index = parser.load_u2
+				t.descriptor_index = parser.load_u2
+				t.index = parser.load_u2
+				@local_variable_table << t
+			end
+			self
+		end
 	end
 
 	# Deprecated attribute
 	class ClassAttributeDeprecated < ClassAttribute
-	end
-
-	# Parses attributes from a class file
-	class AttributeLoader
-		def initialize parser, constant_pool
-			@parser = parser
-			@constant_pool = constant_pool
-		end
-
-		def load
-			attribs = {}
-			@parser.load_u2.times do
-				a = load_one_attribute
-				if attribs.key? a.class
-					attribs[a.class] << a
-				else
-					attribs[a.class] = [a]
-				end
-			end
-			attribs
-		end
-
-			private
-
-		def read_constantvalue_attribute
-			a = ClassAttributeConstantValue.new
-			a.constantvalue_index = @parser.load_u2
-			a
-		end
-
-		def read_code_attribute
-			a = ClassAttributeCode.new
-			a.max_stack = @parser.load_u2
-			a.max_locals = @parser.load_u2
-			a.code = @parser.load_u1_array(@parser.load_u4)
-			a.exception_table = []
-			@parser.load_u2.times do
-				t = ClassAttributeCode::Table.new
-				t.start_pc = @parser.load_u2
-				t.end_pc = @parser.load_u2
-				t.handler_pc = @parser.load_u2
-				t.catch_type = @parser.load_u2
-				a.exception_table << t
-			end
-			a.attributes = load
-			a
-		end
-
-		def read_exceptions_attribute
-			a = ClassAttributeExceptions.new
-			a.exception_index_table = @parser.load_u2_array(@parser.load_u2)
-			a
-		end
-
-		def read_innerclasses_attribute
-			a = ClassAttributeInnerClasses.new
-			a.classes = []
-			@parser.load_u2.times do
-				t = ClassAttributeInnerClasses::Table.new
-				t.inner_class_info_index = @parser.load_u2
-				t.outer_class_info_index = @parser.load_u2
-				t.inner_name_index = @parser.load_u2
-				t.inner_class_access_flags = AccessFlags.new @parser.load_u2
-				a.classes << t
-			end
-			a
-		end
-
-		def read_sourcefile_attribute
-			a = ClassAttributeSourceFile.new
-			a.sourcefile_index = @parser.load_u2
-			a
-		end
-
-		def read_linenumber_attribute
-			a = ClassAttributeLineNumber.new
-			a.line_number_table = []
-			@parser.load_u2.times do
-				t = ClassAttributeLineNumber::Table.new
-				t.start_pc = @parser.load_u2
-				t.line_number = @parser.load_u2
-				a.line_number_table << t
-			end
-			a
-		end
-
-		def read_localvariabletable_attribute
-			a = ClassAttributeLocalVariableTable.new
-			a.local_variable_table = []
-			@parser.load_u2.times do
-				t = ClassAttributeLocalVariableTable::Table
-				t.start_pc = @parser.load_u2
-				t.length = @parser.load_u2
-				t.name_index = @parser.load_u2
-				t.descriptor_index = @parser.load_u2
-				t.index = @parser.load_u2
-				a.local_variable_table << t
-			end
-			a
-		end
-
-		def load_one_attribute
-			attribute_name_index = @parser.load_u2
-			attribute_length = @parser.load_u4
-			attribute_type = @constant_pool[attribute_name_index].value
-			case attribute_type
-			when 'ConstantValue'
-				a = read_constantvalue_attribute
-			when 'Code'
-				a = read_code_attribute
-			when 'Exceptions'
-				a = read_exceptions_attribute
-			when 'InnerClasses'
-				a = read_innerclasses_attribute
-			when 'Synthetic'
-				a = ClassAttributeSyntetic.new
-			when 'SourceFile'
-				a = read_sourcefile_attribute
-			when 'LineNumberTable'
-				a = read_linenumber_attribute
-			when 'LocalVariableTable'
-				a = read_localvariabletable_attribute
-			when 'Deprecated'
-				a = ClassAttributeDeprecated.new
-			else
-				$logger.warn('classloader.rb') { "unknown attribute #{attribute_type}" }
-				a = ClassAttribute.new
-				a.info = @parser.load_u1_array(attribute_length)
-			end
-			a.attribute_name_index = attribute_name_index
-			a
-		end
 	end
 end

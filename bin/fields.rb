@@ -3,26 +3,19 @@
 module Giuseppe
 	# Holds information about a java field or method as found in the class file
 	class ClassField
-		attr_accessor :access_flags, :name_index, :descriptor_index, :attributes
-	end
+		attr_reader :access_flags, :name_index, :descriptor_index, :attributes
 
-	# Parses java fields and methods from a class file
-	class FieldLoader
-		def initialize parser, constant_pool
-			@parser = parser
-			@constant_pool = constant_pool
+		def load parser, constant_pool
+			@access_flags = AccessFlags.new parser.load_u2
+			@name_index = parser.load_u2
+			@descriptor_index = parser.load_u2
+			@attributes = ClassAttribute.load_attribs(parser, constant_pool)
+			self
 		end
 
-		def load
+		def self.load_fields parser, constant_pool
 			f = []
-			@parser.load_u2.times do
-				c = ClassField.new
-				c.access_flags = AccessFlags.new @parser.load_u2
-				c.name_index = @parser.load_u2
-				c.descriptor_index = @parser.load_u2
-				c.attributes = AttributeLoader.new(@parser, @constant_pool).load
-				f << c
-			end
+			parser.load_u2.times { f << ClassField.new.load(parser, constant_pool) }
 			f
 		end
 	end

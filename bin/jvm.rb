@@ -254,7 +254,7 @@ module Giuseppe
 				jvmclass = JavaClass.new(JavaInstance.new, descriptor)
 				@classes[descriptor] = jvmclass
 				unless descriptor.array? || descriptor.primitive?
-					jvmclass.class_file = ClassFileLoader.new(descriptor.class_name).load
+					jvmclass.class_file = ClassFile.new(descriptor.class_name).load
 					initialize_static_fields_for jvmclass
 					clinit = JavaMethod.new(jvmclass, '<clinit>', '()V')
 					@jvm.run(clinit, []) if jvmclass.methods.include?(clinit)
