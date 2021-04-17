@@ -32,7 +32,7 @@ module Giuseppe
 		end
 	end
 
-	# A list of interfaces
+	# A list of interface name references in the constant pool
 	class InterfaceList
 		extend Forwardable
 
