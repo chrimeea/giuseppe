@@ -1,11 +1,33 @@
 # frozen_string_literal: true
 
-module Giuseppe
-	# Base class for all attributes
-	class ClassAttribute
-		attr_accessor :attribute_name_index, :info
+require 'forwardable'
 
-		def self.load parser, constant_pool
+module Giuseppe
+	# A list of attributes indexed by class
+	class ClassAttributeList
+		extend Forwardable
+
+		def_delegators :@attribs, :each, :[]
+
+		def initialize
+			@attribs = {}
+		end
+
+		def load parser, constant_pool
+			parser.load_u2.times do
+				a = load_attrib(parser, constant_pool)
+				if @attribs.key? a.class
+					@attribs[a.class] << a
+				else
+					@attribs[a.class] = [a]
+				end
+			end
+			self
+		end
+
+			private
+
+		def load_attrib parser, constant_pool
 			attribute_name_index = parser.load_u2
 			attribute_length = parser.load_u4
 			attribute_type = constant_pool[attribute_name_index].value
@@ -29,26 +51,18 @@ module Giuseppe
 			when 'Deprecated'
 				a = ClassAttributeDeprecated.new
 			else
-				$logger.warn('classloader.rb') { "unknown attribute #{attribute_type}" }
+				$logger.warn('attributes.rb') { "unknown attribute #{attribute_type}" }
 				a = ClassAttribute.new
 				a.info = parser.load_u1_array(attribute_length)
 			end
 			a.attribute_name_index = attribute_name_index
 			a
 		end
+	end
 
-		def self.load_attribs parser, constant_pool
-			attribs = {}
-			parser.load_u2.times do
-				a = ClassAttribute.load(parser, constant_pool)
-				if attribs.key? a.class
-					attribs[a.class] << a
-				else
-					attribs[a.class] = [a]
-				end
-			end
-			attribs
-		end
+	# Base class for all attributes
+	class ClassAttribute
+		attr_accessor :attribute_name_index, :info
 	end
 
 	# Constant value attribute
@@ -93,7 +107,7 @@ module Giuseppe
 				t.catch_type = parser.load_u2
 				@exception_table << t
 			end
-			@attributes = ClassAttribute.load_attribs(parser, constant_pool)
+			@attributes = ClassAttributeList.new.load(parser, constant_pool)
 			self
 		end
 	end

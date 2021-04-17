@@ -75,10 +75,10 @@ module Giuseppe
 
 		def initialize
 			@constant_pool = ConstantPool.new
-			@interfaces = []
-			@attributes = []
-			@fields = []
-			@methods = []
+			@interfaces = InterfaceList.new
+			@attributes = ClassAttributeList.new
+			@fields = ClassFieldList.new
+			@methods = ClassFieldList.new
 		end
 
 		def load parser
@@ -89,17 +89,11 @@ module Giuseppe
 			@access_flags = AccessFlags.new parser.load_u2
 			@this_class = parser.load_u2
 			@super_class = parser.load_u2
-			@interfaces = load_interfaces parser
-			@fields = ClassField.load_fields(parser, @constant_pool)
-			@methods = ClassField.load_fields(parser, @constant_pool)
-			@attributes = ClassAttribute.load_attribs(parser, @constant_pool)
+			@interfaces.load(parser)
+			@fields.load(parser, @constant_pool)
+			@methods.load(parser, @constant_pool)
+			@attributes.load(parser, @constant_pool)
 			self
-		end
-
-			private
-
-		def load_interfaces parser
-			parser.load_u2_array(parser.load_u2)
 		end
 	end
 

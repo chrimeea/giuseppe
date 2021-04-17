@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'forwardable'
+
 module Giuseppe
 	# Base class for constants in the constant pool
 	class ConstantPoolConstant
@@ -122,16 +124,12 @@ module Giuseppe
 
 	# Holds all the class file constant literals
 	class ConstantPool
+		extend Forwardable
+
+		def_delegators :@pool, :[], :<<
+
 		def initialize
 			@pool = [nil]
-		end
-
-		def [] index
-			@pool[index]
-		end
-
-		def << value
-			@pool << value
 		end
 
 		def get_attrib_value index

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'forwardable'
+
 module Giuseppe
 	# Holds information about a java field or method as found in the class file
 	class ClassField
@@ -9,12 +11,40 @@ module Giuseppe
 			@access_flags = AccessFlags.new parser.load_u2
 			@name_index = parser.load_u2
 			@descriptor_index = parser.load_u2
-			@attributes = ClassAttribute.load_attribs(parser, constant_pool)
+			@attributes = ClassAttributeList.new.load(parser, constant_pool)
 			self
 		end
+	end
 
-		def self.load_fields parser, constant_pool
-			(1..(parser.load_u2)).map { ClassField.new.load(parser, constant_pool) }
+	# A list of java fields or methods
+	class ClassFieldList
+		extend Forwardable
+
+		def_delegators :@fields, :each
+
+		def initialize
+			@fields = []
+		end
+
+		def load parser, constant_pool
+			@fields = (1..(parser.load_u2)).map { ClassField.new.load(parser, constant_pool) }
+			self
+		end
+	end
+
+	# A list of interfaces
+	class InterfaceList
+		extend Forwardable
+
+		def_delegators :@interfaces, :each, :map
+
+		def initialize
+			@interfaces = []
+		end
+
+		def load parser
+			parser.load_u2_array(parser.load_u2)
+			self
 		end
 	end
 end
