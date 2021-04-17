@@ -155,7 +155,7 @@ module Giuseppe
 		end
 	end
 
-	# The class of a java object, array or primitve type
+	# The class of a java object, array or primitive type
 	class JavaClass
 		attr_reader :descriptor, :reference, :class_file, :fields, :methods
 
