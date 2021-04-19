@@ -43,7 +43,7 @@ module Giuseppe
 		end
 
 		def load parser
-			parser.load_u2_array(parser.load_u2)
+			@interfaces = parser.load_u2_array(parser.load_u2)
 			self
 		end
 	end
