@@ -164,40 +164,22 @@ module Giuseppe
 			@reference = reference
 			@fields = {}
 			@methods = {}
-			@interfaces = []
 		end
 
 		def class_file= value
 			@class_file = value
-			value.fields.each do |f|
-				field = JavaField.new(
-						self,
-						@class_file.constant_pool[f.name_index].value,
-						@class_file.constant_pool[f.descriptor_index].value
-				)
-				@fields[field] = f
-			end
-			value.methods.each do |m|
-				method = JavaMethod.new(
-						self,
-						value.constant_pool[m.name_index].value,
-						value.constant_pool[m.descriptor_index].value
-				)
-				@methods[method] = m
-			end
-			@interfaces = value.interfaces.map { |i| @class_file.constant_pool.get_attrib_value i }
+			value.fields.each { |f| @fields[JavaField.new(self, f.name, f.descriptor)] = f }
+			value.methods.each { |m| @methods[JavaMethod.new(self, m.name, m.descriptor)] = m }
 		end
 
 		def super_class
-			return 'java/lang/Object' if descriptor.primitive? || descriptor.array?
-			return if @class_file.super_class.zero?
-			@class_file.constant_pool.get_attrib_value @class_file.super_class
+			return 'java/lang/Object' if @descriptor.primitive? || @descriptor.array?
+			@class_file.super_class
 		end
 
 		def source_file
-			a = @class_file.attributes[ClassAttributeSourceFile]
-			return '' unless a
-			@class_file.constant_pool[a.first.sourcefile_index].value
+			return '' unless @class_file.attributes.key? ClassAttributeSourceFile
+			@class_file.attributes[ClassAttributeSourceFile].first.sourcefile
 		end
 
 		def hash
@@ -249,6 +231,7 @@ module Giuseppe
 		def initialize jvmclass, method_name = nil, descriptor = nil
 			@jvmclass = jvmclass
 			@method_name = method_name
+			@descriptor = nil
 			@descriptor = MethodDescriptor.new(descriptor) if descriptor
 		end
 

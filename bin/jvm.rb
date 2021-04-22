@@ -130,13 +130,8 @@ module Giuseppe
 		def find_exception_handler exception
 			handlers = @current_frame.code_attr.exception_handlers_for(@current_frame.pc - 1)
 			i = handlers.index do |e|
-					e.catch_type.zero? ||
-							@jvm.type_equal_or_superclass?(
-									exception.jvmclass,
-									@jvm.load_class(
-											@current_frame.constant_pool.get_attrib_value(e.catch_type)
-									)
-							)
+					e.catch_type.nil? ||
+							@jvm.type_equal_or_superclass?(exception.jvmclass, @jvm.load_class(e.catch_type))
 			end
 			return handlers[i] if i
 		end
@@ -208,7 +203,7 @@ module Giuseppe
 							@jvm.load_class(jvmclass_a.super_class),
 							jvmclass_b
 					)
-			jvmclass_a.interfaces.each.any? do |i|
+			jvmclass_a.class_file.interfaces.each.any? do |i|
 				return true if type_equal_or_superclass?(
 						@jvm.load_class(i),
 						jvmclass_b

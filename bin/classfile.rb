@@ -88,8 +88,8 @@ module Giuseppe
 			@constant_pool.load(parser)
 			@access_flags = AccessFlags.new parser.load_u2
 			@this_class = parser.load_u2
-			@super_class = parser.load_u2
-			@interfaces.load(parser)
+			@super_class = @constant_pool.get_attrib_value(parser.load_u2)
+			@interfaces.load(parser, @constant_pool)
 			@fields.load(parser, @constant_pool)
 			@methods.load(parser, @constant_pool)
 			@attributes.load(parser, @constant_pool)

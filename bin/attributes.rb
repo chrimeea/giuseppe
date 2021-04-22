@@ -7,7 +7,7 @@ module Giuseppe
 	class ClassAttributeList
 		extend Forwardable
 
-		def_delegators :@attribs, :each, :[]
+		def_delegators :@attribs, :each, :map, :[], :key?
 
 		def initialize
 			@attribs = {}
@@ -28,49 +28,48 @@ module Giuseppe
 			private
 
 		def load_attrib parser, constant_pool
-			attribute_name_index = parser.load_u2
+			attribute_name = constant_pool[parser.load_u2]&.value
 			attribute_length = parser.load_u4
-			attribute_type = constant_pool[attribute_name_index].value
-			case attribute_type
+			case attribute_name
 			when 'ConstantValue'
-				a = ClassAttributeConstantValue.new.load(parser)
+				a = ClassAttributeConstantValue.new.load(parser, constant_pool)
 			when 'Code'
 				a = ClassAttributeCode.new.load(parser, constant_pool)
 			when 'Exceptions'
-				a = ClassAttributeExceptions.new.load(parser)
+				a = ClassAttributeExceptions.new.load(parser, constant_pool)
 			when 'InnerClasses'
-				a = ClassAttributeInnerClasses.new.load(parser)
+				a = ClassAttributeInnerClasses.new.load(parser, constant_pool)
 			when 'Synthetic'
 				a = ClassAttributeSyntetic.new
 			when 'SourceFile'
-				a = ClassAttributeSourceFile.new.load(parser)
+				a = ClassAttributeSourceFile.new.load(parser, constant_pool)
 			when 'LineNumberTable'
 				a = ClassAttributeLineNumber.new.load(parser)
 			when 'LocalVariableTable'
-				a = ClassAttributeLocalVariableTable.new.load(parser)
+				a = ClassAttributeLocalVariableTable.new.load(parser, constant_pool)
 			when 'Deprecated'
 				a = ClassAttributeDeprecated.new
 			else
-				$logger.warn('attributes.rb') { "unknown attribute #{attribute_type}" }
+				$logger.warn('attributes.rb') { "unknown attribute #{attribute_name}" }
 				a = ClassAttribute.new
 				a.info = parser.load_u1_array(attribute_length)
 			end
-			a.attribute_name_index = attribute_name_index
+			a.attribute_name = attribute_name
 			a
 		end
 	end
 
 	# Base class for all attributes
 	class ClassAttribute
-		attr_accessor :attribute_name_index, :info
+		attr_accessor :attribute_name, :info
 	end
 
 	# Constant value attribute
 	class ClassAttributeConstantValue < ClassAttribute
-		attr_accessor :constantvalue_index
+		attr_accessor :constantvalue
 
-		def load parser
-			@constantvalue_index = parser.load_u2
+		def load parser, constant_pool
+			@constantvalue = constant_pool[parser.load_u2]&.value
 			self
 		end
 	end
@@ -104,7 +103,7 @@ module Giuseppe
 				t.start_pc = parser.load_u2
 				t.end_pc = parser.load_u2
 				t.handler_pc = parser.load_u2
-				t.catch_type = parser.load_u2
+				t.catch_type = constant_pool.get_attrib_value(parser.load_u2)
 				@exception_table << t
 			end
 			@attributes = ClassAttributeList.new.load(parser, constant_pool)
@@ -114,10 +113,10 @@ module Giuseppe
 
 	# Exceptions attribute
 	class ClassAttributeExceptions < ClassAttribute
-		attr_accessor :exception_index_table
+		attr_accessor :exception_table
 
-		def load parser
-			@exception_index_table = parser.load_u2_array(parser.load_u2)
+		def load parser, constant_pool
+			@exception_table = parser.load_u2_array(parser.load_u2).map { |i| constant_pool.get_attrib_value(i) }
 			self
 		end
 	end
@@ -127,16 +126,16 @@ module Giuseppe
 		attr_accessor :classes
 
 		class Table
-			attr_accessor :inner_class_info_index, :outer_class_info_index, :inner_name_index, :inner_class_access_flags
+			attr_accessor :inner_class_info, :outer_class_info, :inner_name, :inner_class_access_flags
 		end
 
-		def load parser
+		def load parser, constant_pool
 			@classes = []
 			parser.load_u2.times do
 				t = ClassAttributeInnerClasses::Table.new
-				t.inner_class_info_index = parser.load_u2
-				t.outer_class_info_index = parser.load_u2
-				t.inner_name_index = parser.load_u2
+				t.inner_class_info = constant_pool.get_attrib_value(parser.load_u2)
+				t.outer_class_info = constant_pool.get_attrib_value(parser.load_u2)
+				t.inner_name = constant_pool[parser.load_u2]&.value
 				t.inner_class_access_flags = AccessFlags.new parser.load_u2
 				@classes << t
 			end
@@ -150,10 +149,10 @@ module Giuseppe
 
 	# Source file attribute
 	class ClassAttributeSourceFile < ClassAttribute
-		attr_accessor :sourcefile_index
+		attr_accessor :sourcefile
 
-		def load parser
-			@sourcefile_index = parser.load_u2
+		def load parser, constant_pool
+			@sourcefile = constant_pool[parser.load_u2]&.value
 			self
 		end
 	end
@@ -183,17 +182,17 @@ module Giuseppe
 		attr_accessor :local_variable_table
 
 		class Table
-			attr_accessor :start_pc, :length, :name_index, :descriptor_index, :index
+			attr_accessor :start_pc, :length, :name, :descriptor, :index
 		end
 
-		def load parser
+		def load parser, constant_pool
 			@local_variable_table = []
 			parser.load_u2.times do
 				t = ClassAttributeLocalVariableTable::Table
 				t.start_pc = parser.load_u2
 				t.length = parser.load_u2
-				t.name_index = parser.load_u2
-				t.descriptor_index = parser.load_u2
+				t.name = constant_pool[parser.load_u2]&.value
+				t.descriptor = constant_pool[parser.load_u2]&.value
 				t.index = parser.load_u2
 				@local_variable_table << t
 			end
