@@ -109,12 +109,12 @@ module Giuseppe
 					handle_exception e.exception
 				rescue ZeroDivisionError
 					handle_exception @jvm.new_java_object_with_constructor(
-							JavaMethod.new(@jvm.load_class('java/lang/ArithmeticException'))
+							JavaMethodHandler.new(@jvm.load_class('java/lang/ArithmeticException'))
 					)
 				rescue NoMethodError => e
 					raise e if e.receiver
 					handle_exception @jvm.new_java_object_with_constructor(
-							JavaMethod.new(@jvm.load_class('java/lang/NullPointerException'))
+							JavaMethodHandler.new(@jvm.load_class('java/lang/NullPointerException'))
 					)
 				end
 			end
@@ -220,7 +220,7 @@ module Giuseppe
 		end
 
 		def java_to_native_string reference
-			method = JavaMethod.new(reference.jvmclass, 'getBytes', '()[B')
+			method = JavaMethodHandler.new(reference.jvmclass, 'getBytes', '()[B')
 			arrayref = @jvm.run(method, [reference])
 			arrayref.values.pack('c*')
 		end
@@ -230,7 +230,7 @@ module Giuseppe
 			stringref = new_java_object jvmclass
 			arrayref = new_java_array @jvm.load_class('[B'), [value.chars.size]
 			value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
-			@jvm.run(JavaMethod.new(jvmclass, '<init>', '([B)V'), [stringref, arrayref])
+			@jvm.run(JavaMethodHandler.new(jvmclass, '<init>', '([B)V'), [stringref, arrayref])
 			stringref
 		end
 
@@ -251,7 +251,7 @@ module Giuseppe
 				unless descriptor.array? || descriptor.primitive?
 					jvmclass.class_file = ClassFileLoader.new(descriptor.class_name).load
 					initialize_static_fields_for jvmclass
-					clinit = JavaMethod.new(jvmclass, '<clinit>', '()V')
+					clinit = JavaMethodHandler.new(jvmclass, '<clinit>', '()V')
 					@jvm.run(clinit, []) if jvmclass.methods.include?(clinit)
 				end
 				jvmclass
@@ -297,7 +297,7 @@ module Giuseppe
 		def check_array_index reference, index
 			return if index >= 0 && index < reference.values.size
 			raise JVMError, new_java_object_with_constructor(
-					JavaMethod.new(load_class('java/lang/ArrayIndexOutOfBoundsException'))
+					JavaMethodHandler.new(load_class('java/lang/ArrayIndexOutOfBoundsException'))
 			)
 		end
 
@@ -310,7 +310,7 @@ module Giuseppe
 		end
 
 		def new_java_object_with_constructor method, params = []
-			method = JavaMethod.new(method.jvmclass, '<init>', '()V') unless method.method_name
+			method = JavaMethodHandler.new(method.jvmclass, '<init>', '()V') unless method.method_name
 			reference = @allocator.new_java_object method.jvmclass
 			run method, [reference] + params
 			reference
@@ -322,7 +322,7 @@ module Giuseppe
 
 		def new_java_class_object name
 			new_java_object_with_constructor(
-					JavaMethod.new(load_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
+					JavaMethodHandler.new(load_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
 					[new_java_string(TypeDescriptor.from_internal(name).to_s)]
 			)
 		end

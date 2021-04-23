@@ -168,8 +168,8 @@ module Giuseppe
 
 		def class_file= value
 			@class_file = value
-			value.fields.each { |f| @fields[JavaField.new(self, f.name, f.descriptor)] = f }
-			value.methods.each { |m| @methods[JavaMethod.new(self, m.name, m.descriptor)] = m }
+			value.fields.each { |f| @fields[JavaFieldHandler.new(self, f.name, f.descriptor)] = f }
+			value.methods.each { |m| @methods[JavaMethodHandler.new(self, m.name, m.descriptor)] = m }
 		end
 
 		def super_class
@@ -196,7 +196,7 @@ module Giuseppe
 	end
 
 	# An unresolved java field as name and type
-	class JavaField
+	class JavaFieldHandler
 		attr_reader :field_name, :descriptor
 		attr_accessor :jvmclass
 
@@ -224,7 +224,7 @@ module Giuseppe
 	end
 
 	# An unresolved java method as name and type
-	class JavaMethod
+	class JavaMethodHandler
 		attr_reader :method_name, :descriptor
 		attr_accessor :jvmclass
 

@@ -35,8 +35,8 @@ Listing of Giuseppe JVM implementation classes:
 |javainstance                        |
 |javainstancearray                   |
 |javaclass                           |
-|javafield                           |
-|javamethod                          |
+|javafieldhandler                    |
+|javamethodhandler                   |
 |typedescriptor                      |
 |methoddescriptor                    |
 ├------------------------------------┤

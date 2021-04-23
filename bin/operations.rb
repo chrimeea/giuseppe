@@ -39,7 +39,7 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
-			field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandler.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 			@frame.stack.push @jvm.get_static_field(field)
 		end
 
@@ -49,7 +49,7 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
-			field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandler.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 			@jvm.set_static_field(field, @frame.stack.pop)
 		end
 
@@ -60,7 +60,7 @@ module Giuseppe
 			)
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
 			reference = @frame.stack.pop
-			field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandler.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 			@frame.stack.push @jvm.get_field(reference, field)
 		end
 
@@ -72,7 +72,7 @@ module Giuseppe
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
 			value = @frame.stack.pop
 			reference = @frame.stack.pop
-			field = JavaField.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandler.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 			@jvm.set_field(reference, field, value)
 		end
 	end
@@ -469,7 +469,7 @@ module Giuseppe
 				value = @frame.constant_pool[attrib.index1].value
 				if attrib.string?
 					reference = @jvm.new_java_string(value)
-					method = JavaMethod.new(reference.jvmclass, 'intern', '()Ljava/lang/String;')
+					method = JavaMethodHandler.new(reference.jvmclass, 'intern', '()Ljava/lang/String;')
 					@frame.stack.push @jvm.run(method, [reference])
 				else
 					@frame.stack.push @jvm.new_java_class_object(value)
@@ -593,7 +593,7 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			details = @frame.constant_pool.class_and_name_and_type(method_index)
-			method = JavaMethod.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			method = JavaMethodHandler.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
 			params = []
 			args_count = method.descriptor.args.size
 			args_count.times { params.push @frame.stack.pop }
@@ -638,7 +638,7 @@ module Giuseppe
 							@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index))
 					)
 			raise JVMError, @jvm.new_java_object_with_constructor(
-					JavaMethod.new(@jvm.load_class('java/lang/ClassCastException'))
+					JavaMethodHandler.new(@jvm.load_class('java/lang/ClassCastException'))
 			)
 		end
 
