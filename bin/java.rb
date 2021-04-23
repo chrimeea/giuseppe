@@ -21,6 +21,8 @@ module Giuseppe
 					JavaMethodHandler.new(e.exception.jvmclass, 'printStackTrace', '()V'),
 					[e.exception]
 			)
+		rescue RuntimeError => e
+			puts e.message
 		end
 
 			private

@@ -191,7 +191,7 @@ module Giuseppe
 		end
 
 		def to_s
-			@descriptor
+			@descriptor.to_s
 		end
 	end
 
