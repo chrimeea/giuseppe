@@ -33,7 +33,7 @@ end
 
 def Java_lang_jni_Class_isInterface jvm, params
 	reference = params.first
-	method = JavaMethodHandler.new(reference.jvmclass, 'getName', '()Ljava/lang/String;')
+	method = JavaMethodHandle.new(reference.jvmclass, 'getName', '()Ljava/lang/String;')
 	nameref = jvm.run(method, [reference])
 	jvmclass = jvm.load_class(jvm.java_to_native_string(nameref))
 	!jvmclass.descriptor.array? && jvmclass.class_file.access_flags.interface? ? 1 : 0
@@ -53,7 +53,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	frame = frame.parent_frame
 	while frame
 		stacktrace << jvm.new_java_object_with_constructor(
-				JavaMethodHandler.new(
+				JavaMethodHandle.new(
 						jvmclass,
 						'<init>',
 						'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'
@@ -67,7 +67,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	end
 	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])
 	stacktrace.each_with_index { |s, i| arrayref.values[i] = s }
-	method = JavaMethodHandler.new(reference.jvmclass, 'setStackTrace', "(#{array_class_type})V")
+	method = JavaMethodHandle.new(reference.jvmclass, 'setStackTrace', "(#{array_class_type})V")
 	jvm.run method, [reference, arrayref]
 	reference
 end

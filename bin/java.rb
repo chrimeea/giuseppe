@@ -13,12 +13,12 @@ module Giuseppe
 
 		def run_main class_type, args
 			@jvm.run(
-					JavaMethodHandler.new(@jvm.load_class(class_type), 'main', '([Ljava/lang/String;)V'),
+					JavaMethodHandle.new(@jvm.load_class(class_type), 'main', '([Ljava/lang/String;)V'),
 					[java_array_with_args(args)]
 			)
 		rescue JVMError => e
 			@jvm.run(
-					JavaMethodHandler.new(e.exception.jvmclass, 'printStackTrace', '()V'),
+					JavaMethodHandle.new(e.exception.jvmclass, 'printStackTrace', '()V'),
 					[e.exception]
 			)
 		rescue RuntimeError => e
