@@ -206,6 +206,10 @@ module Giuseppe
 			@descriptor = TypeDescriptor.new descriptor
 		end
 
+		def declared?
+			@jvmclass.fields.key? self
+		end
+
 		def hash
 			"#{@jvmclass}|#{@field_name}".hash
 		end
@@ -233,6 +237,10 @@ module Giuseppe
 			@method_name = method_name
 			@descriptor = nil
 			@descriptor = MethodDescriptor.new(descriptor) if descriptor
+		end
+
+		def declared?
+			@jvmclass.methods.key? self
 		end
 
 		def hash

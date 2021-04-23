@@ -66,7 +66,7 @@ module Giuseppe
 
 		def run method, params
 			frame = @current_frame
-			@current_frame = Frame.new(@jvm.resolve_method!(method), params, frame)
+			@current_frame = Frame.new(@jvm.resolve!(method), params, frame)
 			$logger.debug('jvm.rb') { method.to_s }
 			if @current_frame.native?
 				send native_name(method), @jvm, @current_frame.locals
@@ -144,32 +144,18 @@ module Giuseppe
 			@resolved = {}
 		end
 
-		def resolve_field! field
+		def resolve! field
 			if @resolved.key? field
 				field.jvmclass = @resolved[field]
 			else
 				original_field = field.clone
-				until field.jvmclass.fields.key?(field)
-					fail "Unknown field #{original_field}" unless field.jvmclass.super_class
+				until field.declared?
+					fail "Unknown symbol #{original_field}" unless field.jvmclass.super_class
 					field.jvmclass = @jvm.load_class(field.jvmclass.super_class)
 				end
 				@resolved[original_field] = field.jvmclass
 			end
 			field
-		end
-
-		def resolve_method! method
-			if @resolved.key? method
-				method.jvmclass = @resolved[method]
-			else
-				original_method = method.clone
-				until method.jvmclass.methods.key?(method)
-					fail "Unknown method #{original_method}" unless method.jvmclass.super_class
-					method.jvmclass = @jvm.load_class(method.jvmclass.super_class)
-				end
-				@resolved[original_method] = method.jvmclass
-			end
-			method
 		end
 
 		def resolve_special_method! reference_jvmclass, method
@@ -252,7 +238,7 @@ module Giuseppe
 					jvmclass.class_file = ClassFileLoader.new(descriptor.class_name).load
 					initialize_static_fields_for jvmclass
 					clinit = JavaMethodHandle.new(jvmclass, '<clinit>', '()V')
-					@jvm.run(clinit, []) if jvmclass.methods.include?(clinit)
+					@jvm.run(clinit, []) if clinit.declared?
 				end
 				jvmclass
 			end
@@ -335,8 +321,8 @@ module Giuseppe
 			@allocator.java_to_native_string reference
 		end
 
-		def resolve_method! method
-			@resolver.resolve_method! method
+		def resolve! field
+			@resolver.resolve! field
 		end
 
 		def resolve_special_method! reference_jvmclass, method
@@ -344,19 +330,19 @@ module Giuseppe
 		end
 
 		def get_field reference, field
-			reference.get_field(@resolver.resolve_field!(field))
+			reference.get_field(resolve!(field))
 		end
 
 		def get_static_field field
-			field.jvmclass.reference.get_field(@resolver.resolve_field!(field))
+			field.jvmclass.reference.get_field(resolve!(field))
 		end
 
 		def set_field reference, field, value
-			reference.set_field(@resolver.resolve_field!(field), value)
+			reference.set_field(resolve!(field), value)
 		end
 
 		def set_static_field field, value
-			field.jvmclass.reference.set_field(@resolver.resolve_field!(field), value)
+			field.jvmclass.reference.set_field(resolve!(field), value)
 		end
 
 		def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
