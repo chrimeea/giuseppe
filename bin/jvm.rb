@@ -148,12 +148,12 @@ module Giuseppe
 			if @resolved.key? field
 				field.jvmclass = @resolved[field]
 			else
-				unless field.jvmclass.fields.key?(field)
-					fail "Unknown field #{field.field_name}" unless field.jvmclass.super_class
+				original_field = field.clone
+				until field.jvmclass.fields.key?(field)
+					fail "Unknown field #{original_field}" unless field.jvmclass.super_class
 					field.jvmclass = @jvm.load_class(field.jvmclass.super_class)
-					resolve_field!(field)
 				end
-				@resolved[field] = field.jvmclass
+				@resolved[original_field] = field.jvmclass
 			end
 			field
 		end
@@ -162,12 +162,12 @@ module Giuseppe
 			if @resolved.key? method
 				method.jvmclass = @resolved[method]
 			else
-				unless method.jvmclass.methods.key?(method)
-					fail "Unknown method #{method}" unless method.jvmclass.super_class
+				original_method = method.clone
+				until method.jvmclass.methods.key?(method)
+					fail "Unknown method #{original_method}" unless method.jvmclass.super_class
 					method.jvmclass = @jvm.load_class(method.jvmclass.super_class)
-					resolve_method!(method)
 				end
-				@resolved[method] = method.jvmclass
+				@resolved[original_method] = method.jvmclass
 			end
 			method
 		end
