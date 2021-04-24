@@ -129,10 +129,6 @@ module Giuseppe
 			@fields[field_id(field)]
 		end
 
-		def class_reference?
-			@jvmclass.nil?
-		end
-
 			private
 
 		def field_id field
@@ -141,7 +137,7 @@ module Giuseppe
 	end
 
 	# An instance of a java array
-	class JavaInstanceArray < JavaInstance
+	class JavaArrayInstance < JavaInstance
 		attr_reader :values
 
 		def initialize jvmclass, counts

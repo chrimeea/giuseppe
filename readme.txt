@@ -33,7 +33,7 @@ Listing of Giuseppe JVM implementation classes:
 ├------------------------------------┤
 |frame                               |
 |javainstance                        |
-|javainstancearray                   |
+|javaarrayinstance                   |
 |javaclass                           |
 |javafieldhandle                     |
 |javamethodhandle                    |

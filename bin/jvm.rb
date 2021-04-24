@@ -239,7 +239,7 @@ module Giuseppe
 		end
 
 		def new_java_array jvmclass, sizes
-			JavaInstanceArray.new jvmclass, sizes
+			JavaArrayInstance.new jvmclass, sizes
 		end
 
 		def new_java_object jvmclass
@@ -265,16 +265,18 @@ module Giuseppe
 			private
 
 		def initialize_fields_for reference, jvmclass
-			static = reference.class_reference?
 			jvmclass.fields
-					.select { |_, f| static == !f.access_flags.static?.nil? }
+					.reject { |_, f| f.access_flags.static? }
 					.each { |f, _| @jvm.set_field(reference, f, f.default_value) }
-			return reference if static || jvmclass.super_class.nil?
+			return reference if jvmclass.super_class.nil?
 			initialize_fields_for(reference, @jvm.load_class(jvmclass.super_class))
 		end
 
 		def initialize_static_fields_for jvmclass
-			initialize_fields_for jvmclass.reference, jvmclass
+			jvmclass.fields
+					.select { |_, f| f.access_flags.static? }
+					.each { |f, _| @jvm.set_static_field(f, f.default_value) }
+			jvmclass.reference
 		end
 	end
 
