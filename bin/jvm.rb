@@ -41,6 +41,10 @@ module Giuseppe
 			@code_attr.code[@pc - 1]
 		end
 
+		def rel_instruction offset = 0
+			@code_attr.code[@pc + offset]
+		end
+
 		def line_number
 			return 0 if native?
 			@code_attr.line_number_for(@pc)

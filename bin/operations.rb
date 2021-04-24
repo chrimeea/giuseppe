@@ -186,8 +186,8 @@ module Giuseppe
 			@frame.pc += if yield
 							BinaryParser.to_signed(
 									BinaryParser.to_16bit_unsigned(
-											@frame.code_attr.code[@frame.pc],
-											@frame.code_attr.code[@frame.pc + 1]
+											@frame.instruction,
+											@frame.instruction(+1)
 									),
 									2
 							) - 1
