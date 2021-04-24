@@ -82,7 +82,7 @@ module Giuseppe
 			@current_frame = Frame.new(@jvm.resolve!(method), params, frame)
 			$logger.debug('jvm.rb') { method.to_s }
 			if @current_frame.native?
-				send native_name(method), @jvm, @current_frame.locals
+				send native_name_for(method), @jvm, @current_frame.locals
 			else
 				loop_code
 			end
@@ -92,7 +92,7 @@ module Giuseppe
 
 			private
 
-		def native_name method
+		def native_name_for method
 			n = method.jvmclass.descriptor.class_name.gsub('/', '_')
 			i = n.rindex('_')
 			if i
@@ -185,23 +185,28 @@ module Giuseppe
 			return true if jvmclass_a.eql?(jvmclass_b)
 			if jvmclass_a.descriptor.array? && jvmclass_b.descriptor.array?
 				return false if jvmclass_a.descriptor.dimensions != jvmclass_b.descriptor.dimensions
-				jvmclass_a = @jvm.load_class class_type_a.descriptor.element_type
-				jvmclass_b = @jvm.load_class class_type_b.descriptor.element_type
-				type_equal_or_superclass?(jvmclass_a, jvmclass_b)
+				type_equal_or_superclass?(
+						@jvm.load_class(class_type_a.descriptor.element_type),
+						@jvm.load_class(class_type_b.descriptor.element_type)
+				)
 			else
-				superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
+				superclass_equal?(jvmclass_a, jvmclass_b) ||
+						interface_equal?(jvmclass_a, jvmclass_b)
 			end
 		end
 
 			private
 
-		def superclass_or_interface_equal?(jvmclass_a, jvmclass_b)
+		def superclass_equal?(jvmclass_a, jvmclass_b)
 			return true if
 					jvmclass_a.super_class &&
 					type_equal_or_superclass?(
 							@jvm.load_class(jvmclass_a.super_class),
 							jvmclass_b
 					)
+		end
+
+		def interface_equal(jvmclass_a, jvmclass_b)
 			jvmclass_a.class_file.interfaces.each.any? do |i|
 				return true if type_equal_or_superclass?(
 						@jvm.load_class(i),
