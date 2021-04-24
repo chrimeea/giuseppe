@@ -41,6 +41,11 @@ module Giuseppe
 			@code_attr.code[@pc - 1]
 		end
 
+		def line_number
+			return 0 if native?
+			@code_attr.line_number_for(@pc)
+		end
+
 			private
 
 		def save_into_locals params

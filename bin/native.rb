@@ -61,7 +61,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 				[jvm.new_java_string(frame.method.jvmclass.descriptor.class_name),
 					jvm.new_java_string(frame.method.method_name),
 					jvm.new_java_string(frame.method.jvmclass.source_file),
-					if frame.native? then 0 else frame.code_attr.line_number_for(frame.pc) end]
+					frame.line_number]
 		)
 		frame = frame.parent_frame
 	end
