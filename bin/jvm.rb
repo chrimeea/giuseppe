@@ -41,8 +41,12 @@ module Giuseppe
 			@code_attr.code[@pc - 1]
 		end
 
-		def rel_instruction offset = 0
+		def instruction offset = 0
 			@code_attr.code[@pc + offset]
+		end
+
+		def exception_handlers
+			@code_attr.exception_handlers_for(@pc - 1)
 		end
 
 		def line_number
@@ -137,7 +141,7 @@ module Giuseppe
 		end
 
 		def find_exception_handler exception
-			handlers = @current_frame.code_attr.exception_handlers_for(@current_frame.pc - 1)
+			handlers = @current_frame.exception_handlers
 			i = handlers.index do |e|
 					e.catch_type.nil? ||
 							@jvm.type_equal_or_superclass?(exception.jvmclass, @jvm.load_class(e.catch_type))
