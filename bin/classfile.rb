@@ -83,10 +83,10 @@ module Giuseppe
 
 		def load parser
 			@magic = parser.load_u4
-			$logger.error('classfile.rb') { "invalid magic number #{@magic.to_s(16)}" } unless @magic == 0xCAFEBABE
+			fail "Invalid magic number #{@magic.to_s(16)}" unless @magic == 0xCAFEBABE
 			@minor_version = parser.load_u2
 			@major_version = parser.load_u2
-			$logger.error('classfile.rb') { "invalid major version #{@major_version}" } unless @major_version == 50
+			fail "Invalid major version #{@major_version}" unless @major_version == 50
 			@constant_pool.load(parser)
 			@access_flags = AccessFlags.new parser.load_u2
 			@this_class = parser.load_u2
