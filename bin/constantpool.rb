@@ -73,7 +73,7 @@ module Giuseppe
 		end
 
 		def load parser
-			case tag
+			case @tag
 			when 1
 				@value = read_constant_utf8 parser
 			when 3
@@ -161,6 +161,8 @@ module Giuseppe
 						v = ConstantPoolConstantIndex1Info.new(tag).load(parser)
 					when 9, 10, 11, 12
 						v = ConstantPoolConstantIndex2Info.new(tag).load(parser)
+					else
+						$logger.warn('constantpool.rb') { "unknown constant type #{tag}" }
 					end
 					@pool << v
 				end
