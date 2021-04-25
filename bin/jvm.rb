@@ -243,7 +243,7 @@ module Giuseppe
 		end
 
 		def new_java_object jvmclass
-			initialize_fields_for JavaInstance.new(jvmclass), jvmclass
+			initialize_fields_for JavaInstance.new(jvmclass)
 		end
 
 		def load_class descriptor
@@ -264,7 +264,7 @@ module Giuseppe
 
 			private
 
-		def initialize_fields_for reference, jvmclass
+		def initialize_fields_for reference, jvmclass = reference.jvmclass
 			jvmclass.fields
 					.reject { |_, f| f.access_flags.static? }
 					.each { |f, _| @jvm.set_field(reference, f, f.default_value) }
@@ -276,7 +276,6 @@ module Giuseppe
 			jvmclass.fields
 					.select { |_, f| f.access_flags.static? }
 					.each { |f, _| @jvm.set_static_field(f, f.default_value) }
-			jvmclass.reference
 		end
 	end
 
