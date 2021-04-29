@@ -8,8 +8,7 @@ Incomplete virtual machine instruction set, no thread support.
 Incomplete java lang classes.
 Classpath is only the current folder.
 
-javac -Xlint:-options -source 1.6 -target 1.6 java/lang/*.java
-javac -Xlint:-options -source 1.6 -target 1.6 java/io/*.java
+javac -Xlint:-options -source 1.6 -target 1.6 -bootclasspath . java/lang/*.java
 
 Usage example to compile and run a Test.java file:
 javac -Xlint:-options -source 1.6 -target 1.6 Test.java
