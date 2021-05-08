@@ -12,7 +12,7 @@ javac -Xlint:-options -source 1.6 -target 1.6 -bootclasspath . java/lang/*.java
 
 Usage example to compile and run a Test.java file:
 javac -Xlint:-options -source 1.6 -target 1.6 Test.java
-./bin/java.rb Test
+../bin/java.rb Test
 
 JVM 6 specs:
 https://docs.oracle.com/javase/specs/jvms/se6/html/VMSpecTOC.doc.html
