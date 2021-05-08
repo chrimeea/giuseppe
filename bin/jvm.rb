@@ -3,7 +3,7 @@
 require_relative 'classfile'
 require_relative 'language'
 require_relative 'operations'
-require_relative 'native'
+require_relative '../native/native'
 
 module Giuseppe
 	# An execution frame
