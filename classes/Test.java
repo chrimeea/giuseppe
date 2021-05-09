@@ -57,10 +57,15 @@ public class Test {
 		int i = n[-1];
 	}
 
+	boolean complex(Test t, double f, long[][] y, double[][][] z, Object o) {
+		return true;
+	}
+
 	public static void main(String... args) {
 		Test t2 = new Test();
 		int j = 12;
 		t2.boxing(j);
+		System.out.println(t2.complex(null, 0, null, null, null));
 		Test t = new Test();
 		int[] n = t.sort(args);
 		t.print(n);

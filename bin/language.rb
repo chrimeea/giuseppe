@@ -82,28 +82,7 @@ module Giuseppe
 
 		def parse_type_descriptors
 			pattern = @descriptor.match(/^\(([^)]*)\)(.+)$/)
-			descriptors = pattern[1]
-			i = 0
-			@args = []
-			a = ''
-			while i < descriptors.size
-				case descriptors[i]
-				when 'B', 'C', 'D', 'F', 'I', 'J', 'S', 'Z'
-					@args << TypeDescriptor.new(a + descriptors[i])
-					a = ''
-				when 'L'
-					j = descriptors.index(';', i)
-					@args << TypeDescriptor.new(a + descriptors[i..j])
-					i = j
-					a = ''
-				when '['
-					j = i
-					j += 1 while descriptors[j] == '['
-					a += descriptors[i...j]
-					i = j - 1
-				end
-				i += 1
-			end
+			@args = pattern[1].scan(/\[*(?:B|C|D|F|I|J|S|Z|(?:L[^;]+;))/).map { |t| TypeDescriptor.new(t) }
 			@retval = TypeDescriptor.new(pattern[2])
 		end
 
