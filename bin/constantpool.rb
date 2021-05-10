@@ -146,25 +146,19 @@ module Giuseppe
 		end
 
 		def load parser
-			constant_pool_count = parser.load_u2 - 1
-			tag = nil
-			constant_pool_count.times do
-				if [5, 6].include? tag
-					@pool << nil
-					tag = nil
+			count = parser.load_u2 - 1
+			count.times do
+				tag = parser.load_u1
+				case tag
+				when 1, 3, 4, 5, 6
+					@pool << ConstantPoolConstantValueInfo.new(tag).load(parser)
+					@pool << nil if [5, 6].include? tag
+				when 7, 8
+					@pool << ConstantPoolConstantIndex1Info.new(tag).load(parser)
+				when 9, 10, 11, 12
+					@pool << ConstantPoolConstantIndex2Info.new(tag).load(parser)
 				else
-					tag = parser.load_u1
-					case tag
-					when 1, 3, 4, 5, 6
-						v = ConstantPoolConstantValueInfo.new(tag).load(parser)
-					when 7, 8
-						v = ConstantPoolConstantIndex1Info.new(tag).load(parser)
-					when 9, 10, 11, 12
-						v = ConstantPoolConstantIndex2Info.new(tag).load(parser)
-					else
-						$logger.warn('constantpool.rb') { "unknown constant type #{tag}" }
-					end
-					@pool << v
+					fail "unknown constant type #{tag}"
 				end
 			end
 			self
