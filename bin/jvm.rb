@@ -78,22 +78,26 @@ module Giuseppe
 		end
 
 		def run method, params
-			frame = @current_frame
-			@current_frame = Frame.new(@jvm.resolve!(method), params, frame)
+			previous_frame = @current_frame
+			@current_frame = Frame.new(@jvm.resolve!(method), params, previous_frame)
 			$logger.debug('jvm.rb') { method.to_s }
 			if @current_frame.native?
-				send native_name_for(method), @jvm, @current_frame.locals
+				run_native
 			else
-				loop_code
+				main_loop
 			end
 		ensure
-			@current_frame = frame
+			@current_frame = previous_frame
 		end
 
 			private
 
-		def native_name_for method
-			n = method.jvmclass.descriptor.class_name.gsub('/', '_')
+		def run_native
+			send native_name, @jvm, @current_frame.locals
+		end
+
+		def native_name
+			n = @current_frame.method.jvmclass.descriptor.class_name.gsub('/', '_')
 			i = n.rindex('_')
 			if i
 				n[i] = '_jni_'
@@ -101,10 +105,10 @@ module Giuseppe
 			else
 				n = "Jni_#{n}"
 			end
-			"#{n.gsub('$', '_')}_#{method.method_name}"
+			"#{n.gsub('$', '_')}_#{@current_frame.method.method_name}"
 		end
 
-		def loop_code
+		def main_loop
 			$logger.debug('jvm.rb') { "Running bytecode #{@current_frame.code_attr.code}" }
 			dispatcher = OperationDispatcher.new @jvm
 			loop do
