@@ -59,7 +59,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 						'(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V'
 				),
 				[jvm.new_java_string(frame.method.jvmclass.descriptor.class_name),
-					jvm.new_java_string(frame.method.method_name),
+					jvm.new_java_string(frame.method.name),
 					jvm.new_java_string(frame.method.jvmclass.source_file),
 					frame.line_number]
 		)

@@ -111,7 +111,7 @@ module Giuseppe
 			private
 
 		def field_id field
-			"#{field.jvmclass}.#{field.field_name}"
+			"#{field.jvmclass}.#{field.name}"
 		end
 	end
 
@@ -172,12 +172,12 @@ module Giuseppe
 
 	# An unresolved java field as name and type
 	class JavaFieldHandle
-		attr_reader :field_name, :descriptor
+		attr_reader :name, :descriptor
 		attr_accessor :jvmclass
 
-		def initialize jvmclass, field_name, descriptor
+		def initialize jvmclass, name, descriptor
 			@jvmclass = jvmclass
-			@field_name = field_name
+			@name = name
 			@descriptor = TypeDescriptor.new descriptor
 		end
 
@@ -186,11 +186,11 @@ module Giuseppe
 		end
 
 		def hash
-			"#{@jvmclass}|#{@field_name}".hash
+			"#{@jvmclass}|#{@name}".hash
 		end
 
 		def eql? other
-			@jvmclass.eql?(other.jvmclass) && @field_name.eql?(other.field_name)
+			@jvmclass.eql?(other.jvmclass) && @name.eql?(other.name)
 		end
 
 		def default_value
@@ -198,18 +198,18 @@ module Giuseppe
 		end
 
 		def to_s
-			"#{@jvmclass} #{@field_name} #{@descriptor}"
+			"#{@jvmclass} #{@name} #{@descriptor}"
 		end
 	end
 
 	# An unresolved java method as name and type
 	class JavaMethodHandle
-		attr_reader :method_name, :descriptor
+		attr_reader :name, :descriptor
 		attr_accessor :jvmclass
 
-		def initialize jvmclass, method_name = nil, descriptor = nil
+		def initialize jvmclass, name = nil, descriptor = nil
 			@jvmclass = jvmclass
-			@method_name = method_name
+			@name = name
 			@descriptor = nil
 			@descriptor = MethodDescriptor.new(descriptor) if descriptor
 		end
@@ -223,17 +223,17 @@ module Giuseppe
 		end
 
 		def hash
-			"#{@jvmclass}|#{@method_name}|#{@descriptor}".hash
+			"#{@jvmclass}|#{@name}|#{@descriptor}".hash
 		end
 
 		def eql? other
 			@jvmclass.eql?(other.jvmclass) &&
-					@method_name.eql?(other.method_name) &&
+					@name.eql?(other.name) &&
 					@descriptor.eql?(other.descriptor)
 		end
 
 		def to_s
-			"#{@jvmclass} #{@method_name} #{@descriptor}"
+			"#{@jvmclass} #{@name} #{@descriptor}"
 		end
 	end
 end

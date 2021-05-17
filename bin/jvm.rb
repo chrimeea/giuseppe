@@ -13,7 +13,7 @@ module Giuseppe
 
 		def initialize method, params, parent_frame
 			method_attr = method.attr
-			fail "Unknown method #{method.method_name}" unless method_attr
+			fail "Unknown method #{method.name}" unless method_attr
 			@method = method
 			@pc = 0
 			@parent_frame = parent_frame
@@ -101,7 +101,7 @@ module Giuseppe
 			else
 				n = "Jni_#{name}"
 			end
-			"#{n.gsub('$', '_')}_#{@current_frame.method.method_name}"
+			"#{n.gsub('$', '_')}_#{@current_frame.method.name}"
 		end
 
 		def main_loop
@@ -173,7 +173,7 @@ module Giuseppe
 
 		def resolve_special_method! reference_jvmclass, method
 			if reference_jvmclass.class_file.access_flags.super? &&
-				method.method_name != '<init>' &&
+				method.name != '<init>' &&
 				reference_jvmclass != method.jvmclass &&
 				type_equal_or_superclass?(reference_jvmclass, method.jvmclass)
 				method.jvmclass = @jvm.load_class(reference_jvmclass.super_class)
@@ -315,7 +315,7 @@ module Giuseppe
 		end
 
 		def new_java_object_with_constructor method, params = []
-			method = JavaMethodHandle.new(method.jvmclass, '<init>', '()V') unless method.method_name
+			method = JavaMethodHandle.new(method.jvmclass, '<init>', '()V') unless method.name
 			reference = @allocator.new_java_object method.jvmclass
 			run method, [reference] + params
 			reference
