@@ -93,13 +93,13 @@ module Giuseppe
 		end
 
 		def native_name
-			n = @current_frame.method.jvmclass.descriptor.class_name.gsub('/', '_')
-			i = n.rindex('_')
-			if i
-				n[i] = '_jni_'
+			name = @current_frame.method.jvmclass.descriptor.class_name
+			if name.include? '/'
+				n = name.gsub('/', '_')
+				n[n.rindex('_')] = '_jni_'
 				n[0] = n[0].upcase
 			else
-				n = "Jni_#{n}"
+				n = "Jni_#{name}"
 			end
 			"#{n.gsub('$', '_')}_#{@current_frame.method.method_name}"
 		end
