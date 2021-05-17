@@ -12,7 +12,7 @@ module Giuseppe
 		attr_accessor :pc
 
 		def initialize method, params, parent_frame
-			method_attr = method.jvmclass.methods[method]
+			method_attr = method.attr
 			fail "Unknown method #{method.method_name}" unless method_attr
 			@method = method
 			@pc = 0
@@ -32,7 +32,7 @@ module Giuseppe
 		end
 
 		def native?
-			@method.jvmclass.methods[method].access_flags.native?
+			@method.attr.access_flags.native?
 		end
 
 		def next_instruction

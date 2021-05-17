@@ -218,6 +218,10 @@ module Giuseppe
 			@jvmclass.methods.key? self
 		end
 
+		def attr
+			@jvmclass.methods[self]
+		end
+
 		def hash
 			"#{@jvmclass}|#{@method_name}|#{@descriptor}".hash
 		end

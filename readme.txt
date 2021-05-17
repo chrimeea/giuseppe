@@ -10,9 +10,9 @@ Classpath is only the current folder.
 
 javac -Xlint:-options -source 1.6 -target 1.6 -bootclasspath . java/lang/*.java
 
-Usage example to compile and run a Test.java file:
+Usage example to compile and run the Test.java file:
 javac -Xlint:-options -source 1.6 -target 1.6 Test.java
-../bin/java.rb Test
+ruby -W2 ../bin/java.rb Test 1 3 2
 
 JVM 6 specs:
 https://docs.oracle.com/javase/specs/jvms/se6/html/VMSpecTOC.doc.html
