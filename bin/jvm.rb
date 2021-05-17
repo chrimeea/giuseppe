@@ -81,11 +81,7 @@ module Giuseppe
 			previous_frame = @current_frame
 			@current_frame = Frame.new(@jvm.resolve!(method), params, previous_frame)
 			$logger.debug('jvm.rb') { method.to_s }
-			if @current_frame.native?
-				run_native
-			else
-				main_loop
-			end
+			if @current_frame.native? then run_native else main_loop end
 		ensure
 			@current_frame = previous_frame
 		end
