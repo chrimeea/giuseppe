@@ -119,21 +119,21 @@ module Giuseppe
 						dispatcher.interpret opcode
 					end
 				rescue JVMError => e
-					handle_exception e.exception
+					handle_java_exception e.exception
 				rescue ZeroDivisionError
-					handle_exception @jvm.new_java_object_with_constructor(
+					handle_java_exception @jvm.new_java_object_with_constructor(
 							JavaMethodHandle.new(@jvm.load_class('java/lang/ArithmeticException'))
 					)
 				rescue NoMethodError => e
 					raise e if e.receiver
-					handle_exception @jvm.new_java_object_with_constructor(
+					handle_java_exception @jvm.new_java_object_with_constructor(
 							JavaMethodHandle.new(@jvm.load_class('java/lang/NullPointerException'))
 					)
 				end
 			end
 		end
 
-		def handle_exception exception
+		def handle_java_exception exception
 			handler = find_exception_handler exception
 			raise JVMError, exception unless handler
 			@current_frame.stack.push exception
