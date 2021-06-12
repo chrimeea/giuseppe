@@ -250,7 +250,7 @@ module Giuseppe
 			if @classes.key? descriptor
 				@classes[descriptor]
 			else
-				jvmclass = JavaClass.new(JavaInstance.new, descriptor)
+				jvmclass = JavaClassInstance.new(JavaInstance.new, descriptor)
 				@classes[descriptor] = jvmclass
 				unless descriptor.array? || descriptor.primitive?
 					jvmclass.class_file = ClassFileLoader.new(descriptor.class_name).load

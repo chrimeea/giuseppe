@@ -130,8 +130,8 @@ module Giuseppe
 		end
 	end
 
-	# The class of a java object, array or primitive type
-	class JavaClass
+	# The instance of the class of a java object, array or primitive type
+	class JavaClassInstance
 		attr_reader :descriptor, :reference, :class_file, :fields, :methods
 
 		def initialize reference, descriptor
