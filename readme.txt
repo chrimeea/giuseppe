@@ -27,8 +27,7 @@ Listing of Giuseppe JVM implementation classes:
 |scheduler                           |
 |resolver                            |
 |allocator                           |
-|operationdispatcher                 |
-|operations                          |
+|commanddispatcher + ...             |
 ├------------------------------------┤
 |frame                               |
 |javainstance                        |

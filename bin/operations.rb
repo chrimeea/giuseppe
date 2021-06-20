@@ -12,7 +12,7 @@ module Giuseppe
 	end
 
 	# Implements fields related operations
-	class FieldOperations
+	class FieldCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -28,6 +28,8 @@ module Giuseppe
 				op_getfield
 			when 181
 				op_putfield
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -78,7 +80,7 @@ module Giuseppe
 	end
 
 	# Implements array related operations
-	class ArrayOperations
+	class ArrayCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -94,6 +96,8 @@ module Giuseppe
 				op_arraylength
 			when 197
 				op_multianewarray
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -137,7 +141,7 @@ module Giuseppe
 	end
 
 	# Implements goto operations
-	class GotoOperations
+	class GotoCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -179,6 +183,8 @@ module Giuseppe
 				op_gotoif { @frame.stack.pop.nil? }
 			when 199
 				op_gotoif { @frame.stack.pop }
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -198,7 +204,7 @@ module Giuseppe
 	end
 
 	# Implements type conversion operations
-	class ConversionOperations
+	class ConversionCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -217,6 +223,8 @@ module Giuseppe
 				op_i2c
 			when 147
 				op_i2s
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -244,7 +252,7 @@ module Giuseppe
 	end
 
 	# Implements byte boolean operations
-	class BooleanOperations
+	class BooleanCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -258,6 +266,8 @@ module Giuseppe
 				op_ior
 			when 130
 				op_ixor
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -277,7 +287,7 @@ module Giuseppe
 	end
 
 	# Implements byte shifting operations
-	class ShiftOperations
+	class ShiftCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -289,6 +299,8 @@ module Giuseppe
 				op_ishl
 			when 122
 				op_ishr
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -308,7 +320,7 @@ module Giuseppe
 	end
 
 	# Implements math operations
-	class MathOperations
+	class MathCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -324,6 +336,8 @@ module Giuseppe
 				op_imul
 			when 108..111
 				op_idiv
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -351,7 +365,7 @@ module Giuseppe
 	end
 
 	# Implements locals operations
-	class StoreOperations
+	class StoreCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -383,6 +397,8 @@ module Giuseppe
 				op_iastore
 			when 132
 				op_iinc
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -412,7 +428,7 @@ module Giuseppe
 	end
 
 	# Implements load into stack operations
-	class LoadOperations
+	class LoadCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -440,6 +456,8 @@ module Giuseppe
 				op_iload 3
 			when 46, 50, 51
 				op_iaload
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -500,7 +518,7 @@ module Giuseppe
 	end
 
 	# Implements const operations
-	class ConstOperations
+	class ConstCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -530,6 +548,8 @@ module Giuseppe
 				op_aconst 1.0
 			when 13
 				op_aconst 2.0
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -541,7 +561,7 @@ module Giuseppe
 	end
 
 	# Implements stack operations
-	class StackOperations
+	class StackCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -553,6 +573,8 @@ module Giuseppe
 				@frame.stack.pop
 			when 89
 				op_dup
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -564,7 +586,7 @@ module Giuseppe
 	end
 
 	# Implements object related operations
-	class ObjectOperations
+	class ObjectCommand
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
@@ -582,6 +604,8 @@ module Giuseppe
 				op_checkcast
 			when 193
 				op_instanceof
+			else
+				fail "Failed to process opcode #{opcode}"
 			end
 		end
 
@@ -662,20 +686,20 @@ module Giuseppe
 	end
 
 	# Matches opcodes with their implementation
-	class OperationDispatcher
+	class CommandDispatcher
 		def initialize jvm
-			@const_ops = ConstOperations.new(jvm)
-			@load_ops = LoadOperations.new(jvm)
-			@store_ops = StoreOperations.new(jvm)
-			@stack_ops = StackOperations.new(jvm)
-			@math_ops = MathOperations.new(jvm)
-			@shift_ops = ShiftOperations.new(jvm)
-			@bool_ops = BooleanOperations.new(jvm)
-			@conversion_ops = ConversionOperations.new(jvm)
-			@goto_ops = GotoOperations.new(jvm)
-			@field_ops = FieldOperations.new(jvm)
-			@obj_ops = ObjectOperations.new(jvm)
-			@array_ops = ArrayOperations.new(jvm)
+			@const_ops = ConstCommand.new(jvm)
+			@load_ops = LoadCommand.new(jvm)
+			@store_ops = StoreCommand.new(jvm)
+			@stack_ops = StackCommand.new(jvm)
+			@math_ops = MathCommand.new(jvm)
+			@shift_ops = ShiftCommand.new(jvm)
+			@bool_ops = BooleanCommand.new(jvm)
+			@conversion_ops = ConversionCommand.new(jvm)
+			@goto_ops = GotoCommand.new(jvm)
+			@field_ops = FieldCommand.new(jvm)
+			@obj_ops = ObjectCommand.new(jvm)
+			@array_ops = ArrayCommand.new(jvm)
 		end
 
 		def interpret opcode

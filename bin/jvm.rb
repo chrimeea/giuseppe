@@ -106,7 +106,7 @@ module Giuseppe
 
 		def main_loop
 			$logger.debug('jvm.rb') { "Running bytecode #{@current_frame.code_attr.code}" }
-			dispatcher = OperationDispatcher.new @jvm
+			dispatcher = CommandDispatcher.new @jvm
 			loop do
 				begin
 					opcode = @current_frame.next_instruction
