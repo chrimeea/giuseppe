@@ -2,7 +2,7 @@
 
 require_relative 'classfile'
 require_relative 'language'
-require_relative 'operations'
+require_relative 'commands'
 require_relative '../native/native'
 
 module Giuseppe
