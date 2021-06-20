@@ -91,6 +91,12 @@ public class Test {
 		c1.m();
 		((Test3) c2).m();
 		System.out.println(c1.getClass());
+		System.out.println(c1 instanceof Test3);
+		System.out.println(c1 instanceof Test2);
+		System.out.println(c1 instanceof Test1);
+		System.out.println(c1 instanceof Object);
+		System.out.println(n instanceof Object);
+		System.out.println(new Object() instanceof Test3);
 		t2.wrong(n);
 		System.out.println("done.");
 	}

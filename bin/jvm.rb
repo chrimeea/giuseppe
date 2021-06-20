@@ -206,7 +206,7 @@ module Giuseppe
 					)
 		end
 
-		def interface_equal(jvmclass_a, jvmclass_b)
+		def interface_equal?(jvmclass_a, jvmclass_b)
 			jvmclass_a.class_file.interfaces.each.any? do |i|
 				return true if type_equal_or_superclass?(
 						@jvm.load_class(i),
