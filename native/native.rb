@@ -46,10 +46,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	stacktrace = []
 	jvmclass = jvm.load_class elem_class_type
 	frame = jvm.current_frame
-	while frame
-		break if frame.method.jvmclass.eql?(reference.jvmclass)
-		frame = frame.parent_frame
-	end
+	frame = frame.parent_frame while !frame.method.jvmclass.eql?(reference.jvmclass)
 	frame = frame.parent_frame
 	while frame
 		stacktrace << jvm.new_java_object_with_constructor(
