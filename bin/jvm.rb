@@ -38,7 +38,7 @@ module Giuseppe
 		def next_instruction
 			fail if @pc >= @code_attr.code.length
 			@pc += 1
-			@code_attr.code[@pc - 1]
+			instruction(-1)
 		end
 
 		def instruction offset = 0
@@ -51,7 +51,15 @@ module Giuseppe
 
 		def line_number
 			return 0 if native?
-			@code_attr.line_number_for(@pc)
+			@code_attr.line_number_for(@pc - 1)
+		end
+
+		def depth
+			1 + (parent_frame&.depth || 0)
+		end
+
+		def to_s
+			"[#{depth}] #{if native? then 'N' else ' ' end} #{@method.to_s}"
 		end
 
 			private
@@ -79,8 +87,9 @@ module Giuseppe
 
 		def run method, params
 			previous_frame = @current_frame
+			$logger.debug('jvm.rb') { "[#{previous_frame.depth}] Line number #{previous_frame.line_number}" } if previous_frame
 			@current_frame = Frame.new(@jvm.resolve!(method), params, previous_frame)
-			$logger.debug('jvm.rb') { method.to_s }
+			$logger.debug('jvm.rb') { @current_frame.to_s }
 			if @current_frame.native? then run_native else main_loop end
 		ensure
 			@current_frame = previous_frame
