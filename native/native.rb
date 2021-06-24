@@ -47,8 +47,9 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	jvmclass = jvm.load_class elem_class_type
 	frame = jvm.current_frame
 	frame = frame.parent_frame while !frame.method.jvmclass.eql?(reference.jvmclass)
-	frame = frame.parent_frame
-	while frame
+	loop do
+		frame = frame.parent_frame
+		break unless frame
 		stacktrace << jvm.new_java_object_with_constructor(
 				JavaMethodHandle.new(
 						jvmclass,
@@ -60,7 +61,6 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 					jvm.new_java_string(frame.method.jvmclass.source_file),
 					frame.line_number]
 		)
-		frame = frame.parent_frame
 	end
 	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])
 	stacktrace.each_with_index { |s, i| arrayref.values[i] = s }
