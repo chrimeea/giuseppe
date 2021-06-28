@@ -301,11 +301,8 @@ module Giuseppe
 		end
 
 		def load_class class_type
-			if class_type.is_a?(TypeDescriptor)
-				@allocator.load_class class_type
-			else
-				@allocator.load_class(TypeDescriptor.from_internal(class_type))
-			end
+			class_type = TypeDescriptor.from_internal(class_type) unless class_type.is_a?(TypeDescriptor)
+			@allocator.load_class class_type
 		end
 
 		def check_array_index reference, index
