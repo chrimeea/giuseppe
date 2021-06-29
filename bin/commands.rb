@@ -41,7 +41,7 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
-			field = JavaFieldHandle.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandle.new(@jvm.java_class(details.class_type), details.field_name, details.field_type)
 			@frame.stack.push @jvm.get_static_field(field)
 		end
 
@@ -51,7 +51,7 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
-			field = JavaFieldHandle.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandle.new(@jvm.java_class(details.class_type), details.field_name, details.field_type)
 			@jvm.set_static_field(field, @frame.stack.pop)
 		end
 
@@ -62,7 +62,7 @@ module Giuseppe
 			)
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
 			reference = @frame.stack.pop
-			field = JavaFieldHandle.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandle.new(@jvm.java_class(details.class_type), details.field_name, details.field_type)
 			@frame.stack.push @jvm.get_field(reference, field)
 		end
 
@@ -74,7 +74,7 @@ module Giuseppe
 			details = @frame.constant_pool.class_and_name_and_type(field_index)
 			value = @frame.stack.pop
 			reference = @frame.stack.pop
-			field = JavaFieldHandle.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			field = JavaFieldHandle.new(@jvm.java_class(details.class_type), details.field_name, details.field_type)
 			@jvm.set_field(reference, field, value)
 		end
 	end
@@ -107,7 +107,7 @@ module Giuseppe
 			count = @frame.stack.pop
 			array_code = @frame.next_instruction
 			array_type = [nil, nil, nil, nil, '[Z', '[C', '[F', '[D', '[B', '[S', '[I', '[J']
-			@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type[array_code]), [count])
+			@frame.stack.push @jvm.new_java_array(@jvm.java_class(array_type[array_code]), [count])
 		end
 
 		def op_anewarray
@@ -117,7 +117,7 @@ module Giuseppe
 			)
 			array_type = "[#{@frame.constant_pool.get_attrib_value(class_index)}"
 			count = @frame.stack.pop
-			@frame.stack.push @jvm.new_java_array(@jvm.load_class(array_type), [count])
+			@frame.stack.push @jvm.new_java_array(@jvm.java_class(array_type), [count])
 		end
 
 		def op_arraylength
@@ -134,7 +134,7 @@ module Giuseppe
 			counts = []
 			dimensions.times { counts << @frame.stack.pop }
 			@frame.stack.push @jvm.new_java_array(
-					@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)),
+					@jvm.java_class(@frame.constant_pool.get_attrib_value(class_index)),
 					counts.reverse
 			)
 		end
@@ -617,7 +617,7 @@ module Giuseppe
 					@frame.next_instruction
 			)
 			details = @frame.constant_pool.class_and_name_and_type(method_index)
-			method = JavaMethodHandle.new(@jvm.load_class(details.class_type), details.field_name, details.field_type)
+			method = JavaMethodHandle.new(@jvm.java_class(details.class_type), details.field_name, details.field_type)
 			params = []
 			args_count = method.descriptor.args.size
 			args_count.times { params.push @frame.stack.pop }
@@ -643,7 +643,7 @@ module Giuseppe
 					@frame.next_instruction,
 					@frame.next_instruction
 			)
-			@frame.stack.push @jvm.new_java_object(@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index)))
+			@frame.stack.push @jvm.new_java_object(@jvm.java_class(@frame.constant_pool.get_attrib_value(class_index)))
 		end
 
 		def op_athrow
@@ -659,10 +659,10 @@ module Giuseppe
 			return unless reference &&
 					!@jvm.type_equal_or_superclass?(
 							reference.jvmclass,
-							@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index))
+							@jvm.java_class(@frame.constant_pool.get_attrib_value(class_index))
 					)
 			raise JVMError, @jvm.new_java_object_with_constructor(
-					JavaMethodHandle.new(@jvm.load_class('java/lang/ClassCastException'))
+					JavaMethodHandle.new(@jvm.java_class('java/lang/ClassCastException'))
 			)
 		end
 
@@ -676,7 +676,7 @@ module Giuseppe
 				@frame.stack.push(
 						if @jvm.type_equal_or_superclass?(
 								reference.jvmclass,
-								@jvm.load_class(@frame.constant_pool.get_attrib_value(class_index))
+								@jvm.java_class(@frame.constant_pool.get_attrib_value(class_index))
 						) then 1 else 0 end
 				)
 			else

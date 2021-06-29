@@ -35,7 +35,7 @@ def Java_lang_jni_Class_isInterface jvm, params
 	reference = params.first
 	method = JavaMethodHandle.new(reference.jvmclass, 'getName', '()Ljava/lang/String;')
 	nameref = jvm.run(method, [reference])
-	jvmclass = jvm.load_class(jvm.java_to_native_string(nameref))
+	jvmclass = jvm.java_class(jvm.java_to_native_string(nameref))
 	!jvmclass.descriptor.array? && jvmclass.class_file.access_flags.interface? ? 1 : 0
 end
 
@@ -44,7 +44,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 	elem_class_type = 'java/lang/StackTraceElement'
 	array_class_type = "[L#{elem_class_type};"
 	stacktrace = []
-	jvmclass = jvm.load_class elem_class_type
+	jvmclass = jvm.java_class elem_class_type
 	frame = jvm.current_frame
 	frame = frame.parent_frame while !frame.method.jvmclass.eql?(reference.jvmclass)
 	loop do
@@ -62,7 +62,7 @@ def Java_lang_jni_Throwable_fillInStackTrace jvm, params
 					frame.line_number]
 		)
 	end
-	arrayref = jvm.new_java_array(jvm.load_class(array_class_type), [stacktrace.size])
+	arrayref = jvm.new_java_array(jvm.java_class(array_class_type), [stacktrace.size])
 	stacktrace.each_with_index { |s, i| arrayref.values[i] = s }
 	method = JavaMethodHandle.new(reference.jvmclass, 'setStackTrace', "(#{array_class_type})V")
 	jvm.run method, [reference, arrayref]

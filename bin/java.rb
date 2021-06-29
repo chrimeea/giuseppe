@@ -13,7 +13,7 @@ module Giuseppe
 
 		def run_main class_type, args
 			@jvm.run(
-					JavaMethodHandle.new(@jvm.load_class(class_type), 'main', '([Ljava/lang/String;)V'),
+					JavaMethodHandle.new(@jvm.java_class(class_type), 'main', '([Ljava/lang/String;)V'),
 					[java_array_with_args(args)]
 			)
 		rescue JVMError => e
@@ -28,7 +28,7 @@ module Giuseppe
 			private
 
 		def java_array_with_args args
-			arrayref = @jvm.new_java_array @jvm.load_class('[Ljava/lang/String;'), [args.size]
+			arrayref = @jvm.new_java_array @jvm.java_class('[Ljava/lang/String;'), [args.size]
 			args.each_with_index { |s, i| arrayref.values[i] = @jvm.new_java_string(s) }
 			arrayref
 		end

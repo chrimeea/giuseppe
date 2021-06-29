@@ -131,12 +131,12 @@ module Giuseppe
 					handle_java_exception e.exception
 				rescue ZeroDivisionError
 					handle_java_exception @jvm.new_java_object_with_constructor(
-							JavaMethodHandle.new(@jvm.load_class('java/lang/ArithmeticException'))
+							JavaMethodHandle.new(@jvm.java_class('java/lang/ArithmeticException'))
 					)
 				rescue NoMethodError => e
 					raise e if e.receiver
 					handle_java_exception @jvm.new_java_object_with_constructor(
-							JavaMethodHandle.new(@jvm.load_class('java/lang/NullPointerException'))
+							JavaMethodHandle.new(@jvm.java_class('java/lang/NullPointerException'))
 					)
 				end
 			end
@@ -153,7 +153,7 @@ module Giuseppe
 			handlers = @current_frame.exception_handlers
 			i = handlers.index do |e|
 					e.catch_type.nil? ||
-							@jvm.type_equal_or_superclass?(exception.jvmclass, @jvm.load_class(e.catch_type))
+							@jvm.type_equal_or_superclass?(exception.jvmclass, @jvm.java_class(e.catch_type))
 			end
 			return handlers[i] if i
 		end
@@ -173,7 +173,7 @@ module Giuseppe
 				original_field = field.clone
 				until field.declared?
 					fail "Unknown symbol #{original_field}" unless field.jvmclass.super_class
-					field.jvmclass = @jvm.load_class(field.jvmclass.super_class)
+					field.jvmclass = @jvm.java_class(field.jvmclass.super_class)
 				end
 				@resolved[original_field] = field.jvmclass
 			end
@@ -185,7 +185,7 @@ module Giuseppe
 				method.name != '<init>' &&
 				reference_jvmclass != method.jvmclass &&
 				type_equal_or_superclass?(reference_jvmclass, method.jvmclass)
-				method.jvmclass = @jvm.load_class(reference_jvmclass.super_class)
+				method.jvmclass = @jvm.java_class(reference_jvmclass.super_class)
 			end
 			method
 		end
@@ -195,8 +195,8 @@ module Giuseppe
 			if jvmclass_a.descriptor.array? && jvmclass_b.descriptor.array?
 				return false if jvmclass_a.descriptor.dimensions != jvmclass_b.descriptor.dimensions
 				type_equal_or_superclass?(
-						@jvm.load_class(class_type_a.descriptor.element_type),
-						@jvm.load_class(class_type_b.descriptor.element_type)
+						@jvm.java_class(class_type_a.descriptor.element_type),
+						@jvm.java_class(class_type_b.descriptor.element_type)
 				)
 			else
 				superclass_equal?(jvmclass_a, jvmclass_b) ||
@@ -210,7 +210,7 @@ module Giuseppe
 			return true if
 					jvmclass_a.super_class &&
 					type_equal_or_superclass?(
-							@jvm.load_class(jvmclass_a.super_class),
+							@jvm.java_class(jvmclass_a.super_class),
 							jvmclass_b
 					)
 		end
@@ -218,7 +218,7 @@ module Giuseppe
 		def interface_equal?(jvmclass_a, jvmclass_b)
 			jvmclass_a.class_file.interfaces.each.any? do |i|
 				return true if type_equal_or_superclass?(
-						@jvm.load_class(i),
+						@jvm.java_class(i),
 						jvmclass_b
 				)
 			end
@@ -239,9 +239,9 @@ module Giuseppe
 		end
 
 		def new_java_string value
-			jvmclass = @jvm.load_class('java/lang/String')
+			jvmclass = @jvm.java_class('java/lang/String')
 			stringref = new_java_object jvmclass
-			arrayref = new_java_array @jvm.load_class('[B'), [value.chars.size]
+			arrayref = new_java_array @jvm.java_class('[B'), [value.chars.size]
 			value.unpack('c*').each_with_index { |s, i| arrayref.values[i] = s }
 			@jvm.run(JavaMethodHandle.new(jvmclass, '<init>', '([B)V'), [stringref, arrayref])
 			stringref
@@ -255,7 +255,7 @@ module Giuseppe
 			initialize_fields_for JavaInstance.new(jvmclass)
 		end
 
-		def load_class descriptor
+		def java_class descriptor
 			if @classes.key? descriptor
 				@classes[descriptor]
 			else
@@ -278,7 +278,7 @@ module Giuseppe
 					.reject { |_, f| f.access_flags.static? }
 					.each { |f, _| @jvm.set_field(reference, f, f.default_value) }
 			return reference if jvmclass.super_class.nil?
-			initialize_fields_for(reference, @jvm.load_class(jvmclass.super_class))
+			initialize_fields_for(reference, @jvm.java_class(jvmclass.super_class))
 		end
 
 		def initialize_static_fields_for jvmclass
@@ -300,15 +300,15 @@ module Giuseppe
 			@scheduler.current_frame
 		end
 
-		def load_class class_type
+		def java_class class_type
 			class_type = TypeDescriptor.from_internal(class_type) unless class_type.is_a?(TypeDescriptor)
-			@allocator.load_class class_type
+			@allocator.java_class class_type
 		end
 
 		def check_array_index reference, index
 			return if index >= 0 && index < reference.values.size
 			raise JVMError, new_java_object_with_constructor(
-					JavaMethodHandle.new(load_class('java/lang/ArrayIndexOutOfBoundsException'))
+					JavaMethodHandle.new(java_class('java/lang/ArrayIndexOutOfBoundsException'))
 			)
 		end
 
@@ -333,7 +333,7 @@ module Giuseppe
 
 		def new_java_class_object name
 			new_java_object_with_constructor(
-					JavaMethodHandle.new(load_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
+					JavaMethodHandle.new(java_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
 					[new_java_string(TypeDescriptor.from_internal(name).to_s)]
 			)
 		end
