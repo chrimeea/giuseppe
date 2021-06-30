@@ -95,6 +95,7 @@ public class Test {
 		System.out.println(c1 instanceof Test2);
 		System.out.println(c1 instanceof Test1);
 		System.out.println(c1 instanceof Object);
+		System.out.println(new Integer[0] instanceof Object[]);
 		System.out.println(n instanceof Object);
 		System.out.println(new Object() instanceof Test3);
 		t2.wrong(n);

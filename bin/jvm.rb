@@ -195,8 +195,8 @@ module Giuseppe
 			if jvmclass_a.descriptor.array? && jvmclass_b.descriptor.array?
 				return false if jvmclass_a.descriptor.dimensions != jvmclass_b.descriptor.dimensions
 				type_equal_or_superclass?(
-						@jvm.java_class(class_type_a.descriptor.element_type),
-						@jvm.java_class(class_type_b.descriptor.element_type)
+						@jvm.java_class(jvmclass_a.descriptor.element_type),
+						@jvm.java_class(jvmclass_b.descriptor.element_type)
 				)
 			else
 				superclass_equal?(jvmclass_a, jvmclass_b) ||
