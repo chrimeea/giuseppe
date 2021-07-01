@@ -255,6 +255,20 @@ module Giuseppe
 			initialize_fields_for JavaInstance.new(jvmclass)
 		end
 
+		def new_java_object_with_constructor method, params = []
+			method = JavaMethodHandle.new(method.jvmclass, '<init>', '()V') unless method.name
+			reference = new_java_object method.jvmclass
+			@jvm.run method, [reference] + params
+			reference
+		end
+
+		def new_java_class_object name
+			new_java_object_with_constructor(
+					JavaMethodHandle.new(@jvm.java_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
+					[new_java_string(TypeDescriptor.from_internal(name).to_s)]
+			)
+		end
+
 		def java_class descriptor
 			if @classes.key? descriptor
 				@classes[descriptor]
@@ -290,14 +304,16 @@ module Giuseppe
 
 	# Mediates between Resolver, Allocator and Scheduler
 	class JVM
+		extend Forwardable
+
+		def_delegators :@resolver, :resolve!, :resolve_special_method!, :type_equal_or_superclass?
+		def_delegators :@allocator, :new_java_array, :new_java_object, :new_java_object_with_constructor, :new_java_class_object, :new_java_string, :java_to_native_string
+		def_delegators :@scheduler, :current_frame, :run
+
 		def initialize
 			@resolver = Resolver.new self
 			@allocator = Allocator.new self
 			@scheduler = Scheduler.new self
-		end
-
-		def current_frame
-			@scheduler.current_frame
 		end
 
 		def java_class class_type
@@ -310,48 +326,6 @@ module Giuseppe
 			raise JVMError, new_java_object_with_constructor(
 					JavaMethodHandle.new(java_class('java/lang/ArrayIndexOutOfBoundsException'))
 			)
-		end
-
-		def run method, params
-			@scheduler.run method, params
-		end
-
-		def new_java_object jvmclass
-			@allocator.new_java_object jvmclass
-		end
-
-		def new_java_object_with_constructor method, params = []
-			method = JavaMethodHandle.new(method.jvmclass, '<init>', '()V') unless method.name
-			reference = @allocator.new_java_object method.jvmclass
-			run method, [reference] + params
-			reference
-		end
-
-		def new_java_array jvmclass, sizes
-			@allocator.new_java_array jvmclass, sizes
-		end
-
-		def new_java_class_object name
-			new_java_object_with_constructor(
-					JavaMethodHandle.new(java_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
-					[new_java_string(TypeDescriptor.from_internal(name).to_s)]
-			)
-		end
-
-		def new_java_string value
-			@allocator.new_java_string value
-		end
-
-		def java_to_native_string reference
-			@allocator.java_to_native_string reference
-		end
-
-		def resolve! field
-			@resolver.resolve! field
-		end
-
-		def resolve_special_method! reference_jvmclass, method
-			@resolver.resolve_special_method! reference_jvmclass, method
 		end
 
 		def get_field reference, field
@@ -368,10 +342,6 @@ module Giuseppe
 
 		def set_static_field field, value
 			field.jvmclass.reference.set_field(resolve!(field), value)
-		end
-
-		def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
-			@resolver.type_equal_or_superclass?(jvmclass_a, jvmclass_b)
 		end
 	end
 end
