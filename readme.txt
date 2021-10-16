@@ -4,7 +4,7 @@ Supports instance and static method invocations.
 Supports inheritance, abstract classes and interfaces.
 Supports exceptions.
 Supports native code (no jni support).
-Incomplete virtual machine instruction set, no thread support.
+Incomplete virtual machine instruction set, no thread support, no finalize.
 Incomplete java lang classes.
 Classpath is only the current folder.
 
