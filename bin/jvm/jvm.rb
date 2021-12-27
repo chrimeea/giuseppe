@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'classfile'
+require_relative '../classfile/classfile'
 require_relative 'language'
 require_relative 'commands'
-require_relative '../native/native'
+require_relative '../../native/native'
 
 module Giuseppe
 	# An execution frame

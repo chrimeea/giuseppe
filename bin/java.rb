@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 # frozen_string_literal: true
 
-require_relative 'jvm'
+require_relative 'jvm/jvm'
 require 'logger'
 
 module Giuseppe
