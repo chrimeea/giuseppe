@@ -2,7 +2,7 @@
 
 require_relative '../classfile/classfile'
 require_relative 'language'
-require_relative 'commands'
+require_relative 'interpreter'
 require_relative '../../native/native'
 
 module Giuseppe
@@ -115,7 +115,7 @@ module Giuseppe
 
 		def main_loop
 			$logger.debug('jvm.rb') { "Running bytecode #{@current_frame.code_attr.code}" }
-			dispatcher = CommandDispatcher.new @jvm
+			dispatcher = Interpreter.new @jvm
 			loop do
 				begin
 					opcode = @current_frame.next_instruction

@@ -686,7 +686,7 @@ module Giuseppe
 	end
 
 	# Matches opcodes with their implementation
-	class CommandDispatcher
+	class Interpreter
 		def initialize jvm
 			@const_ops = ConstCommand.new(jvm)
 			@load_ops = LoadCommand.new(jvm)
