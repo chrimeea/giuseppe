@@ -2,7 +2,7 @@
 
 require_relative '../classfile/classfile'
 require_relative 'language'
-require_relative 'interpreter'
+require_relative 'instructions'
 require_relative '../../native/native'
 
 module Giuseppe
@@ -77,7 +77,7 @@ module Giuseppe
 	end
 
 	# Runs the frame code and handles exceptions
-	class Scheduler
+	class Interpreter
 		attr_reader :current_frame
 
 		def initialize jvm
@@ -115,7 +115,6 @@ module Giuseppe
 
 		def main_loop
 			$logger.debug('jvm.rb') { "Running bytecode #{@current_frame.code_attr.code}" }
-			dispatcher = Interpreter.new @jvm
 			loop do
 				begin
 					opcode = @current_frame.next_instruction
@@ -125,7 +124,7 @@ module Giuseppe
 					when 177
 						break
 					else
-						dispatcher.interpret opcode
+						Instruction.new(@jvm).execute opcode
 					end
 				rescue JVMError => e
 					handle_java_exception e.exception
@@ -302,18 +301,18 @@ module Giuseppe
 		end
 	end
 
-	# Mediates between Resolver, Allocator and Scheduler
+	# Mediates between Resolver, Allocator and Interpreter
 	class JVM
 		extend Forwardable
 
 		def_delegators :@resolver, :resolve!, :resolve_special_method!, :type_equal_or_superclass?
 		def_delegators :@allocator, :new_java_array, :new_java_object, :new_java_object_with_constructor, :new_java_class_object, :new_java_string, :java_to_native_string
-		def_delegators :@scheduler, :current_frame, :run
+		def_delegators :@interpreter, :current_frame, :run
 
 		def initialize
 			@resolver = Resolver.new self
 			@allocator = Allocator.new self
-			@scheduler = Scheduler.new self
+			@interpreter = Interpreter.new self
 		end
 
 		def java_class class_type

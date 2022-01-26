@@ -11,14 +11,17 @@ module Giuseppe
 		end
 	end
 
-	# Implements fields related operations
-	class FieldCommand
+	class Command
 		def initialize jvm
 			@jvm = jvm
 			@frame = jvm.current_frame
 		end
+	end
 
-		def interpret opcode
+	# Implements fields related operations
+	class FieldCommand < Command
+
+		def execute opcode
 			case opcode
 			when 178
 				op_getstatic
@@ -80,13 +83,9 @@ module Giuseppe
 	end
 
 	# Implements array related operations
-	class ArrayCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class ArrayCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 188
 				op_newarray
@@ -141,13 +140,9 @@ module Giuseppe
 	end
 
 	# Implements goto operations
-	class GotoCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class GotoCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 153
 				op_gotoif { @frame.stack.pop.zero? }
@@ -204,13 +199,9 @@ module Giuseppe
 	end
 
 	# Implements type conversion operations
-	class ConversionCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class ConversionCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 133, 141
 			when 134, 135, 137, 138
@@ -252,13 +243,9 @@ module Giuseppe
 	end
 
 	# Implements byte boolean operations
-	class BooleanCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class BooleanCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 126
 				op_iand
@@ -287,13 +274,9 @@ module Giuseppe
 	end
 
 	# Implements byte shifting operations
-	class ShiftCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class ShiftCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 120
 				op_ishl
@@ -320,13 +303,9 @@ module Giuseppe
 	end
 
 	# Implements math operations
-	class MathCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class MathCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 96..99
 				op_iadd
@@ -365,13 +344,9 @@ module Giuseppe
 	end
 
 	# Implements locals operations
-	class StoreCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class StoreCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 54, 56, 58
 				op_istore @frame.next_instruction
@@ -428,13 +403,9 @@ module Giuseppe
 	end
 
 	# Implements load into stack operations
-	class LoadCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class LoadCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 16
 				op_bipush
@@ -518,13 +489,9 @@ module Giuseppe
 	end
 
 	# Implements const operations
-	class ConstCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class ConstCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 1
 				op_aconst nil
@@ -561,13 +528,9 @@ module Giuseppe
 	end
 
 	# Implements stack operations
-	class StackCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class StackCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 87
 				@frame.stack.pop
@@ -586,13 +549,9 @@ module Giuseppe
 	end
 
 	# Implements object related operations
-	class ObjectCommand
-		def initialize jvm
-			@jvm = jvm
-			@frame = jvm.current_frame
-		end
+	class ObjectCommand < Command
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 182..185
 				op_invoke opcode
@@ -686,49 +645,38 @@ module Giuseppe
 	end
 
 	# Matches opcodes with their implementation
-	class Interpreter
+	class Instruction
 		def initialize jvm
-			@const_ops = ConstCommand.new(jvm)
-			@load_ops = LoadCommand.new(jvm)
-			@store_ops = StoreCommand.new(jvm)
-			@stack_ops = StackCommand.new(jvm)
-			@math_ops = MathCommand.new(jvm)
-			@shift_ops = ShiftCommand.new(jvm)
-			@bool_ops = BooleanCommand.new(jvm)
-			@conversion_ops = ConversionCommand.new(jvm)
-			@goto_ops = GotoCommand.new(jvm)
-			@field_ops = FieldCommand.new(jvm)
-			@obj_ops = ObjectCommand.new(jvm)
-			@array_ops = ArrayCommand.new(jvm)
+			@jvm = jvm
 		end
 
-		def interpret opcode
+		def execute opcode
 			case opcode
 			when 0
 			when 1..15
-				@const_ops.interpret opcode
+				ConstCommand.new(@jvm).execute opcode
 			when 16..18, 20..46, 50, 51
-				@load_ops.interpret opcode
+				LoadCommand.new(@jvm).execute opcode
 			when 54..79, 83, 84, 132
-				@store_ops.interpret opcode
+				StoreCommand.new(@jvm).execute opcode
 			when 87, 89
-				@stack_ops.interpret opcode
+				StackCommand.new(@jvm).execute opcode
 			when 96..111
-				@math_ops.interpret opcode
+				MathCommand.new(@jvm).execute opcode
 			when 120, 122
-				@shift_ops.interpret opcode
+				ShiftCommand.new(@jvm).execute opcode
 			when 126, 128, 130
-				@bool_ops.interpret opcode
+				BooleanCommand.new(@jvm).execute opcode
 			when 133..141, 145, 146, 147
-				@conversion_ops.interpret opcode
+				ConversionCommand.new(@jvm).execute opcode
 			when 153..167, 198, 199
-				@goto_ops.interpret opcode
+				GotoCommand.new(@jvm).execute opcode
 			when 178..181
-				@field_ops.interpret opcode
+				FieldCommand.new(@jvm).execute opcode
 			when 182..185, 187, 191..193
-				@obj_ops.interpret opcode
+				ObjectCommand.new(@jvm).execute opcode
 			when 188..190, 197
-				@array_ops.interpret opcode
+				ArrayCommand.new(@jvm).execute opcode
 			else
 				fail "Unsupported opcode #{opcode}"
 			end
