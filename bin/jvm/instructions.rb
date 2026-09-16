@@ -114,7 +114,7 @@ module Giuseppe
 					@frame.next_instruction,
 					@frame.next_instruction
 			)
-			array_type = "[#{@frame.constant_pool.get_attrib_value(class_index)}"
+			array_type = "[L#{@frame.constant_pool.get_attrib_value(class_index)};"
 			count = @frame.stack.pop
 			@frame.stack.push @jvm.new_java_array(@jvm.java_class(array_type), [count])
 		end

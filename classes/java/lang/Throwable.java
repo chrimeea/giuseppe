@@ -8,6 +8,18 @@ public class Throwable {
 		fillInStackTrace();
 	}
 
+	public Throwable(String message) {
+		this();
+	}
+
+	public Throwable(String message, Throwable cause) {
+		this();
+	}
+
+	public Throwable(Throwable cause) {
+		this();
+	}
+
 	public void setStackTrace(StackTraceElement[] stackTrace) {
 		this.stackTrace = stackTrace;
 	}

@@ -5,6 +5,7 @@ public class Test {
 	float prop3 = 1.5f;
 	static boolean prop4;
 	String prop5 = "abc.def";
+	Object[] prop6 = (Object[]) new Object[10]; // test array cast
 
 	static {
 		System.out.println("Init static");
