@@ -9,6 +9,7 @@ module Giuseppe
 	# Convenience methods to interpret access flags
 	class AccessFlags
 		def initialize access_flags
+			raise TypeError unless access_flags.is_a? Integer
 			@access_flags = access_flags
 		end
 
@@ -82,6 +83,7 @@ module Giuseppe
 		end
 
 		def load parser
+			raise TypeError unless parser.is_a? BinaryParser
 			@magic = parser.load_u4
 			fail "Invalid magic number #{@magic.to_s(16)}" unless @magic == 0xCAFEBABE
 			@minor_version = parser.load_u2
@@ -102,19 +104,22 @@ module Giuseppe
 	# Loads a class file from disk
 	class ClassFileLoader
 
-		def initialize class_type
-			@class_type = class_type
+		def initialize class_name
+			raise TypeError unless class_name.is_a? String
+			@class_name = class_name
 		end
 
-		def load content = IO.binread(class_path(@class_type))
+		def load content = IO.binread(class_path(@class_name))
+			raise TypeError unless content.is_a? String
 			$logger.info('classfile.rb') { "Loading #{@class_type}" }
 			ClassFile.new.load(BinaryParser.new(content))
 		end
 
 			private
 
-		def class_path class_type
-			"#{class_type}.class"
+		def class_path class_name
+			raise TypeError unless class_name.is_a? String
+			"#{class_name}.class"
 		end
 	end
 end
