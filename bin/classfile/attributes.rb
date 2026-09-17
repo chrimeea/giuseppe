@@ -14,6 +14,8 @@ module Giuseppe
 		end
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			parser.load_u2.times do
 				a = load_attrib(parser, constant_pool)
 				if @attribs.key? a.class
@@ -28,6 +30,8 @@ module Giuseppe
 			private
 
 		def load_attrib parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			attribute_name = constant_pool[parser.load_u2]&.value
 			attribute_length = parser.load_u4
 			case attribute_name
@@ -69,6 +73,8 @@ module Giuseppe
 		attr_accessor :constantvalue
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@constantvalue = constant_pool[parser.load_u2]&.value
 			self
 		end
@@ -83,6 +89,7 @@ module Giuseppe
 		end
 
 		def line_number_for pc
+			raise TypeError unless pc.is_a? Integer
 			a = @attributes[ClassAttributeLineNumber]&.first
 			return 0 unless a
 			i = a.line_number_table.index { |t| t.start_pc > pc } || 0
@@ -90,10 +97,13 @@ module Giuseppe
 		end
 
 		def exception_handlers_for pc
+			raise TypeError unless pc.is_a? Integer
 			@exception_table.select { |e| pc >= e.start_pc && pc < e.end_pc }
 		end
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@max_stack = parser.load_u2
 			@max_locals = parser.load_u2
 			@code = parser.load_u1_array(parser.load_u4)
@@ -116,6 +126,8 @@ module Giuseppe
 		attr_accessor :exception_table
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@exception_table = parser.load_u2_array(parser.load_u2).map { |i| constant_pool.get_attrib_value(i) }
 			self
 		end
@@ -130,6 +142,8 @@ module Giuseppe
 		end
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@classes = []
 			parser.load_u2.times do
 				t = ClassAttributeInnerClasses::Table.new
@@ -152,6 +166,8 @@ module Giuseppe
 		attr_accessor :sourcefile
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@sourcefile = constant_pool[parser.load_u2]&.value
 			self
 		end
@@ -166,6 +182,7 @@ module Giuseppe
 		end
 
 		def load parser
+			raise TypeError unless parser.is_a? BinaryParser
 			@line_number_table = []
 			parser.load_u2.times do
 				t = ClassAttributeLineNumber::Table.new
@@ -186,6 +203,8 @@ module Giuseppe
 		end
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@local_variable_table = []
 			parser.load_u2.times do
 				t = ClassAttributeLocalVariableTable::Table
