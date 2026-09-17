@@ -8,12 +8,15 @@ module Giuseppe
 	# A java program
 	class JavaProgram
 		def initialize jvm
+			raise TypeError unless jvm.is_a? JVM
 			@jvm = jvm
 		end
 
-		def run_main class_type, args
+		def run_main class_name, args
+			raise TypeError unless class_name.is_a? String
+			raise TypeError unless args.is_a? Array
 			@jvm.run(
-					JavaMethodHandle.new(@jvm.java_class(class_type), 'main', '([Ljava/lang/String;)V'),
+					JavaMethodHandle.new(@jvm.java_class(class_name), 'main', '([Ljava/lang/String;)V'),
 					[java_array_with_args(args)]
 			)
 		rescue JVMError => e

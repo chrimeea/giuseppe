@@ -76,6 +76,7 @@ public class Test {
 		System.out.println("Prop4 = " + t.prop4);
 		System.out.println("Prop4 = " + Test.prop4);
 		System.out.println("Prop5 = " + t.prop5.replace('.', '/'));
+		System.out.println("Prop6 = " + t.prop6);
 		try {
 			throw new RuntimeException();
 		} catch (RuntimeException e) {
