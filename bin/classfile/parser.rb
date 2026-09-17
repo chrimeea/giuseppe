@@ -4,6 +4,7 @@ module Giuseppe
 	# Parses encoded bytecode from a class file
 	class BinaryParser
 		def initialize contents
+			raise TypeError unless contents.is_a? String
 			@i = 0
 			@contents = contents
 		end
@@ -15,6 +16,7 @@ module Giuseppe
 		end
 
 		def load_u1_array length
+			raise TypeError unless length.is_a? Integer
 			a = @contents.byteslice(@i, length).unpack 'C*'
 			@i += length
 			a
@@ -27,6 +29,7 @@ module Giuseppe
 		end
 
 		def load_u2_array length
+			raise TypeError unless length.is_a? Integer
 			a = @contents.byteslice(@i, 2 * length).unpack 'S>*'
 			@i += 2 * length
 			a
@@ -39,20 +42,27 @@ module Giuseppe
 		end
 
 		def load_string length
+			raise TypeError unless length.is_a? Integer
 			s = @contents.byteslice(@i, length).unpack1 'a*'
 			@i += length
 			s
 		end
 
 		def self.to_16bit_unsigned(byte1, byte2)
+			raise TypeError unless byte1.is_a? Integer
+			raise TypeError unless byte2.is_a? Integer
 			(byte1 << 8) | byte2
 		end
 
 		def self.trunc_to(value, count)
+			raise TypeError unless value.is_a? Integer
+			raise TypeError unless count.is_a? Integer
 			value.modulo 2**(8 * count)
 		end
 
 		def self.to_signed(value, count)
+			raise TypeError unless value.is_a? Integer
+			raise TypeError unless count.is_a? Integer
 			n = 2**(8 * count)
 			sign = value & (n / 2)
 			value -= n if sign.nonzero?

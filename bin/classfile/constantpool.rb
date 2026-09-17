@@ -8,6 +8,7 @@ module Giuseppe
 		attr_reader :tag
 
 		def initialize tag
+			raise TypeError unless tag.is_a? Integer
 			@tag = tag
 		end
 	end
@@ -17,6 +18,8 @@ module Giuseppe
 		attr_reader :index1
 
 		def initialize tag, index1 = nil
+			raise TypeError unless tag.is_a? Integer
+			raise TypeError unless index1.is_a?(Integer) || index1.nil?
 			super tag
 			@index1 = index1
 		end
@@ -40,6 +43,9 @@ module Giuseppe
 		attr_reader :index2
 
 		def initialize tag, index1 = nil, index2 = nil
+			raise TypeError unless tag.is_a? Integer
+			raise TypeError unless index1.is_a?(Integer) || index1.nil?
+			raise TypeError unless index2.is_a?(Integer) || index2.nil?
 			super tag, index1
 			@index2 = index2
 		end
@@ -57,6 +63,7 @@ module Giuseppe
 		end
 
 		def load parser
+			raise TypeError unless parser.is_a? BinaryParser
 			@index1 = parser.load_u2
 			@index2 = parser.load_u2
 			self
@@ -68,11 +75,14 @@ module Giuseppe
 		attr_reader :value
 
 		def initialize tag, value = nil
+			raise TypeError unless tag.is_a? Integer
+			raise TypeError unless value.is_a?(String) || value.is_a?(Numeric) || value.nil?
 			super tag
 			@value = value
 		end
 
 		def load parser
+			raise TypeError unless parser.is_a? BinaryParser
 			case @tag
 			when 1
 				@value = read_constant_utf8 parser
@@ -89,14 +99,17 @@ module Giuseppe
 		end
 
 		def read_constant_utf8 parser
+			raise TypeError unless parser.is_a? BinaryParser
 			parser.load_string(parser.load_u2)
 		end
 
 		def read_constant_int parser
+			raise TypeError unless parser.is_a? BinaryParser
 			BinaryParser.to_signed(parser.load_u4, 4)
 		end
 
 		def read_constant_float parser
+			raise TypeError unless parser.is_a? BinaryParser
 			value = parser.load_u4
 			s = if (value >> 31).zero? then 1 else -1 end
 			e = (value >> 23) & 0xff
@@ -105,6 +118,7 @@ module Giuseppe
 		end
 
 		def read_constant_long parser
+			raise TypeError unless parser.is_a? BinaryParser
 			high_bytes = parser.load_u4
 			low_bytes = parser.load_u4
 			value = (high_bytes << 32) + low_bytes
@@ -112,6 +126,7 @@ module Giuseppe
 		end
 
 		def read_constant_double parser
+			raise TypeError unless parser.is_a? BinaryParser
 			high_bytes = parser.load_u4
 			low_bytes = parser.load_u4
 			value = (high_bytes << 32) + low_bytes
@@ -133,10 +148,12 @@ module Giuseppe
 		end
 
 		def get_attrib_value index
+			raise TypeError unless index.is_a? Integer
 			if index.zero? then nil else @pool[@pool[index].index1].value end
 		end
 
 		def class_and_name_and_type index
+			raise TypeError unless index.is_a? Integer
 			attrib = @pool[index]
 			class_type = get_attrib_value(attrib.index1)
 			attrib = @pool[attrib.index2]
@@ -146,6 +163,7 @@ module Giuseppe
 		end
 
 		def load parser
+			raise TypeError unless parser.is_a? BinaryParser
 			count = parser.load_u2 - 1
 			count.times do
 				tag = parser.load_u1
