@@ -4,12 +4,14 @@ module Giuseppe
 	# A type descriptor
 	class TypeDescriptor
 		def initialize descriptor
+			raise TypeError unless descriptor.is_a? String
 			@descriptor = descriptor
 		end
 
-		def self.from_internal class_type
-			class_type = "L#{class_type};" unless class_type.chr == '['
-			TypeDescriptor.new class_type
+		def self.from_internal class_name
+			raise TypeError unless class_name.is_a? String
+			class_name = "L#{class_name};" unless class_name.chr == '['
+			TypeDescriptor.new class_name
 		end
 
 		def primitive?
@@ -62,6 +64,7 @@ module Giuseppe
 		attr_reader :args, :retval
 
 		def initialize descriptor
+			raise TypeError unless descriptor.is_a? String
 			@descriptor = descriptor
 			parse_type_descriptors
 		end
@@ -71,6 +74,7 @@ module Giuseppe
 		end
 
 		def eql? other
+			raise TypeError unless other.is_a? MethodDescriptor
 			@descriptor.eql? other.descriptor
 		end
 
@@ -96,21 +100,25 @@ module Giuseppe
 		attr_reader :jvmclass
 
 		def initialize jvmclass = nil
+			raise TypeError unless jvmclass.is_a?(JavaClassInstance) || jvmclass.nil?
 			@jvmclass = jvmclass
 			@fields = {}
 		end
 
 		def set_field field, value
+			raise TypeError unless field.is_a? JavaFieldHandle
 			@fields[field_id(field)] = value
 		end
 
 		def get_field field
+			raise TypeError unless field.is_a? JavaFieldHandle
 			@fields[field_id(field)]
 		end
 
 			private
 
 		def field_id field
+			raise TypeError unless field.is_a? JavaFieldHandle
 			"#{field.jvmclass}.#{field.name}"
 		end
 	end
@@ -120,6 +128,8 @@ module Giuseppe
 		attr_reader :values
 
 		def initialize jvmclass, counts
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
+			raise TypeError unless counts.is_a? Array
 			fail unless jvmclass.descriptor.array?
 			fail unless jvmclass.descriptor.dimensions == counts.size
 			super jvmclass
@@ -135,6 +145,8 @@ module Giuseppe
 		attr_reader :descriptor, :reference, :class_file, :fields, :methods
 
 		def initialize reference, descriptor
+			raise TypeError unless reference.is_a? JavaInstance
+			raise TypeError unless descriptor.is_a? TypeDescriptor
 			@descriptor = descriptor
 			@reference = reference
 			@fields = {}
@@ -142,6 +154,7 @@ module Giuseppe
 		end
 
 		def class_file= value
+			raise TypeError unless value.is_a? ClassFile
 			@class_file = value
 			value.fields.each { |f| @fields[JavaFieldHandle.new(self, f.name, f.descriptor)] = f }
 			value.methods.each { |m| @methods[JavaMethodHandle.new(self, m.name, m.descriptor)] = m }
@@ -162,6 +175,7 @@ module Giuseppe
 		end
 
 		def eql? other
+			raise TypeError unless other.is_a? JavaClassInstance
 			@descriptor.eql? other.descriptor
 		end
 
@@ -176,6 +190,9 @@ module Giuseppe
 		attr_accessor :jvmclass
 
 		def initialize jvmclass, name, descriptor
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
+			raise TypeError unless name.is_a? String
+			raise TypeError unless descriptor.is_a? String
 			@jvmclass = jvmclass
 			@name = name
 			@descriptor = TypeDescriptor.new descriptor
@@ -190,6 +207,7 @@ module Giuseppe
 		end
 
 		def eql? other
+			raise TypeError unless other.is_a? JavaFieldHandle
 			@jvmclass.eql?(other.jvmclass) && @name.eql?(other.name)
 		end
 
@@ -208,6 +226,9 @@ module Giuseppe
 		attr_accessor :jvmclass
 
 		def initialize jvmclass, name = nil, descriptor = nil
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
+			raise TypeError unless name.is_a?(String) || name.nil?
+			raise TypeError unless descriptor.is_a?(String) || descriptor.nil?
 			@jvmclass = jvmclass
 			@name = name
 			@descriptor = nil
@@ -227,6 +248,7 @@ module Giuseppe
 		end
 
 		def eql? other
+			raise TypeError unless other.is_a? JavaMethodHandle
 			@jvmclass.eql?(other.jvmclass) &&
 					@name.eql?(other.name) &&
 					@descriptor.eql?(other.descriptor)
