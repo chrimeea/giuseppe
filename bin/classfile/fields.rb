@@ -8,6 +8,8 @@ module Giuseppe
 		attr_reader :access_flags, :name, :descriptor, :attributes
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@access_flags = AccessFlags.new parser.load_u2
 			@name = constant_pool[parser.load_u2]&.value
 			@descriptor = constant_pool[parser.load_u2]&.value
@@ -27,6 +29,8 @@ module Giuseppe
 		end
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@fields = (1..(parser.load_u2)).map { ClassField.new.load(parser, constant_pool) }
 			self
 		end
@@ -43,6 +47,8 @@ module Giuseppe
 		end
 
 		def load parser, constant_pool
+			raise TypeError unless parser.is_a? BinaryParser
+			raise TypeError unless constant_pool.is_a? ConstantPool
 			@interfaces = parser.load_u2_array(parser.load_u2).map { |i| constant_pool.get_attrib_value i }
 			self
 		end
