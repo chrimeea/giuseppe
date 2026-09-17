@@ -6,6 +6,7 @@ module Giuseppe
 		attr_reader :exception
 
 		def initialize exception
+			raise TypeError unless exception.is_a? JavaInstance
 			super
 			@exception = exception
 		end
@@ -13,6 +14,7 @@ module Giuseppe
 
 	class Command
 		def initialize jvm
+			raise TypeError unless jvm.is_a? JVM
 			@jvm = jvm
 			@frame = jvm.current_frame
 		end
@@ -22,6 +24,7 @@ module Giuseppe
 	class FieldCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 178
 				op_getstatic
@@ -86,6 +89,7 @@ module Giuseppe
 	class ArrayCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 188
 				op_newarray
@@ -143,6 +147,7 @@ module Giuseppe
 	class GotoCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 153
 				op_gotoif { @frame.stack.pop.zero? }
@@ -202,6 +207,7 @@ module Giuseppe
 	class ConversionCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 133, 141
 			when 134, 135, 137, 138
@@ -246,6 +252,7 @@ module Giuseppe
 	class BooleanCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 126
 				op_iand
@@ -277,6 +284,7 @@ module Giuseppe
 	class ShiftCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 120
 				op_ishl
@@ -306,6 +314,7 @@ module Giuseppe
 	class MathCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 96..99
 				op_iadd
@@ -347,6 +356,7 @@ module Giuseppe
 	class StoreCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 54, 56, 58
 				op_istore @frame.next_instruction
@@ -406,6 +416,7 @@ module Giuseppe
 	class LoadCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 16
 				op_bipush
@@ -477,6 +488,7 @@ module Giuseppe
 		end
 
 		def op_iload index
+			raise TypeError unless index.is_a? Integer
 			@frame.stack.push @frame.locals[index]
 		end
 
@@ -492,6 +504,7 @@ module Giuseppe
 	class ConstCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 1
 				op_aconst nil
@@ -531,6 +544,7 @@ module Giuseppe
 	class StackCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 87
 				@frame.stack.pop
@@ -552,6 +566,7 @@ module Giuseppe
 	class ObjectCommand < Command
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 182..185
 				op_invoke opcode
@@ -571,6 +586,7 @@ module Giuseppe
 			private
 
 		def op_invoke opcode
+			raise TypeError unless opcode.is_a? Integer
 			method_index = BinaryParser.to_16bit_unsigned(
 					@frame.next_instruction,
 					@frame.next_instruction
@@ -647,10 +663,12 @@ module Giuseppe
 	# Matches opcodes with their implementation
 	class Instruction
 		def initialize jvm
+			raise TypeError unless jvm.is_a? JVM
 			@jvm = jvm
 		end
 
 		def execute opcode
+			raise TypeError unless opcode.is_a? Integer
 			case opcode
 			when 0
 			when 1..15
