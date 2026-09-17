@@ -12,6 +12,9 @@ module Giuseppe
 		attr_accessor :pc
 
 		def initialize method, params, parent_frame
+			raise TypeError unless method.is_a? JavaMethodHandle
+			raise TypeError unless params.is_a? Array
+			raise TypeError unless parent_frame.is_a?(Frame) || parent_frame.nil?
 			method_attr = method.attr
 			fail "Unknown method #{method.name}" unless method_attr
 			@method = method
@@ -42,6 +45,7 @@ module Giuseppe
 		end
 
 		def instruction offset = 0
+			raise TypeError unless offset.is_a? Integer
 			@code_attr.code[@pc + offset]
 		end
 
@@ -65,6 +69,7 @@ module Giuseppe
 			private
 
 		def save_into_locals params
+			raise TypeError unless params.is_a? Array
 			fail if params.size > @method.descriptor.args.size + 1
 			p = params.reverse
 			@locals.push(p.pop) if params.size == @method.descriptor.args.size + 1
@@ -81,11 +86,14 @@ module Giuseppe
 		attr_reader :current_frame
 
 		def initialize jvm
+			raise TypeError unless jvm.is_a? JVM
 			@jvm = jvm
 			@current_frame = nil
 		end
 
 		def run method, params
+			raise TypeError unless method.is_a? JavaMethodHandle
+			raise TypeError unless params.is_a? Array
 			previous_frame = @current_frame
 			$logger.debug('jvm.rb') { "[#{previous_frame.depth}] Line number #{previous_frame.line_number}" } if previous_frame
 			@current_frame = Frame.new(@jvm.resolve!(method), params, previous_frame)
@@ -142,6 +150,7 @@ module Giuseppe
 		end
 
 		def handle_java_exception exception
+			raise TypeError unless exception.is_a? JavaInstance
 			handler = find_exception_handler exception
 			raise JVMError, exception unless handler
 			@current_frame.stack.push exception
@@ -149,6 +158,7 @@ module Giuseppe
 		end
 
 		def find_exception_handler exception
+			raise TypeError unless exception.is_a? JavaInstance
 			handlers = @current_frame.exception_handlers
 			i = handlers.index do |e|
 					e.catch_type.nil? ||
@@ -161,11 +171,13 @@ module Giuseppe
 	# Resolves fields and methods and checks type equality
 	class Resolver
 		def initialize jvm
+			raise TypeError unless jvm.is_a? JVM
 			@jvm = jvm
 			@resolved = {}
 		end
 
 		def resolve! field
+			raise TypeError unless field.is_a?(JavaFieldHandle) || field.is_a?(JavaMethodHandle)
 			if @resolved.key? field
 				field.jvmclass = @resolved[field]
 			else
@@ -180,6 +192,8 @@ module Giuseppe
 		end
 
 		def resolve_special_method! reference_jvmclass, method
+			raise TypeError unless reference_jvmclass.is_a? JavaClassInstance
+			raise TypeError unless method.is_a? JavaMethodHandle
 			if reference_jvmclass.class_file.access_flags.super? &&
 				method.name != '<init>' &&
 				reference_jvmclass != method.jvmclass &&
@@ -189,7 +203,9 @@ module Giuseppe
 			method
 		end
 
-		def type_equal_or_superclass?(jvmclass_a, jvmclass_b)
+		def type_equal_or_superclass? jvmclass_a, jvmclass_b
+			raise TypeError unless jvmclass_a.is_a? JavaClassInstance
+			raise TypeError unless jvmclass_b.is_a? JavaClassInstance
 			return true if jvmclass_a.eql?(jvmclass_b)
 			if jvmclass_a.descriptor.array? && jvmclass_b.descriptor.array?
 				return false if jvmclass_a.descriptor.dimensions != jvmclass_b.descriptor.dimensions
@@ -205,7 +221,9 @@ module Giuseppe
 
 			private
 
-		def superclass_equal?(jvmclass_a, jvmclass_b)
+		def superclass_equal? jvmclass_a, jvmclass_b
+			raise TypeError unless jvmclass_a.is_a? JavaClassInstance
+			raise TypeError unless jvmclass_b.is_a? JavaClassInstance
 			return true if
 					jvmclass_a.super_class &&
 					type_equal_or_superclass?(
@@ -214,7 +232,9 @@ module Giuseppe
 					)
 		end
 
-		def interface_equal?(jvmclass_a, jvmclass_b)
+		def interface_equal? jvmclass_a, jvmclass_b
+			raise TypeError unless jvmclass_a.is_a? JavaClassInstance
+			raise TypeError unless jvmclass_b.is_a? JavaClassInstance
 			jvmclass_a.class_file.interfaces.each.any? do |i|
 				return true if type_equal_or_superclass?(
 						@jvm.java_class(i),
@@ -227,17 +247,20 @@ module Giuseppe
 	# Loads classes and creates java arrays and objects
 	class Allocator
 		def initialize jvm
+			raise TypeError unless jvm.is_a? JVM
 			@jvm = jvm
 			@classes = {}
 		end
 
 		def java_to_native_string reference
+			raise TypeError unless reference.is_a? JavaInstance
 			method = JavaMethodHandle.new(reference.jvmclass, 'getBytes', '()[B')
 			arrayref = @jvm.run(method, [reference])
 			arrayref.values.pack('c*')
 		end
 
 		def new_java_string value
+			raise TypeError unless value.is_a? String
 			jvmclass = @jvm.java_class('java/lang/String')
 			stringref = new_java_object jvmclass
 			arrayref = new_java_array @jvm.java_class('[B'), [value.chars.size]
@@ -247,14 +270,19 @@ module Giuseppe
 		end
 
 		def new_java_array jvmclass, sizes
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
+			raise TypeError unless sizes.is_a? Array
 			JavaArrayInstance.new jvmclass, sizes
 		end
 
 		def new_java_object jvmclass
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
 			initialize_fields_for JavaInstance.new(jvmclass)
 		end
 
 		def new_java_object_with_constructor method, params = []
+			raise TypeError unless method.is_a? JavaMethodHandle
+			raise TypeError unless params.is_a? Array
 			method = JavaMethodHandle.new(method.jvmclass, '<init>', '()V') unless method.name
 			reference = new_java_object method.jvmclass
 			@jvm.run method, [reference] + params
@@ -262,6 +290,7 @@ module Giuseppe
 		end
 
 		def new_java_class_object name
+			raise TypeError unless name.is_a? String
 			new_java_object_with_constructor(
 					JavaMethodHandle.new(@jvm.java_class('java/lang/Class'), '<init>', '(Ljava/lang/String;)V'),
 					[new_java_string(TypeDescriptor.from_internal(name).to_s)]
@@ -269,6 +298,7 @@ module Giuseppe
 		end
 
 		def java_class descriptor
+			raise TypeError unless descriptor.is_a? TypeDescriptor
 			if @classes.key? descriptor
 				@classes[descriptor]
 			else
@@ -287,6 +317,8 @@ module Giuseppe
 			private
 
 		def initialize_fields_for reference, jvmclass = reference.jvmclass
+			raise TypeError unless reference.is_a? JavaInstance
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
 			jvmclass.fields
 					.reject { |_, f| f.access_flags.static? }
 					.each { |f, _| @jvm.set_field(reference, f, f.default_value) }
@@ -295,6 +327,7 @@ module Giuseppe
 		end
 
 		def initialize_static_fields_for jvmclass
+			raise TypeError unless jvmclass.is_a? JavaClassInstance
 			jvmclass.fields
 					.select { |_, f| f.access_flags.static? }
 					.each { |f, _| @jvm.set_static_field(f, f.default_value) }
@@ -316,11 +349,14 @@ module Giuseppe
 		end
 
 		def java_class class_type
+			raise TypeError unless class_type.is_a?(TypeDescriptor) || class_type.is_a?(String)
 			class_type = TypeDescriptor.from_internal(class_type) unless class_type.is_a?(TypeDescriptor)
 			@allocator.java_class class_type
 		end
 
 		def check_array_index reference, index
+			raise TypeError unless reference.is_a? JavaInstance
+			raise TypeError unless index.is_a? Integer
 			return if index >= 0 && index < reference.values.size
 			raise JVMError, new_java_object_with_constructor(
 					JavaMethodHandle.new(java_class('java/lang/ArrayIndexOutOfBoundsException'))
@@ -328,18 +364,24 @@ module Giuseppe
 		end
 
 		def get_field reference, field
+			raise TypeError unless reference.is_a? JavaInstance
+			raise TypeError unless field.is_a? JavaFieldHandle
 			reference.get_field(resolve!(field))
 		end
 
 		def get_static_field field
+			raise TypeError unless field.is_a? JavaFieldHandle
 			field.jvmclass.reference.get_field(resolve!(field))
 		end
 
 		def set_field reference, field, value
+			raise TypeError unless reference.is_a? JavaInstance
+			raise TypeError unless field.is_a? JavaFieldHandle
 			reference.set_field(resolve!(field), value)
 		end
 
 		def set_static_field field, value
+			raise TypeError unless field.is_a? JavaFieldHandle
 			field.jvmclass.reference.set_field(resolve!(field), value)
 		end
 	end
